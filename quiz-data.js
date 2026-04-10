@@ -2,6 +2,7 @@
 const quizData = [
     {
         id: 1,
+        level: "Iniciante",
         question: "O que é uma Fake News?",
         options: [
             {
@@ -28,6 +29,7 @@ const quizData = [
     },
     {
         id: 2,
+        level: "Iniciante",
         question: "Como você pode ajudar a prevenir o compartilhamento de fake news?",
         options: [
             {
@@ -54,6 +56,7 @@ const quizData = [
     },
     {
         id: 3,
+        level: "Intermediário",
         question: "O que é Phishing?",
         options: [
             {
@@ -80,6 +83,7 @@ const quizData = [
     },
     {
         id: 4,
+        level: "Intermediário",
         question: "Qual é a senha mais segura?",
         options: [
             {
@@ -106,6 +110,7 @@ const quizData = [
     },
     {
         id: 5,
+        level: "Intermediário",
         question: "O que você deve fazer se receber um email suspeito pedindo seu usuário e senha?",
         options: [
             {
@@ -132,6 +137,7 @@ const quizData = [
     },
     {
         id: 6,
+        level: "Avançado",
         question: "Como você deve se proteger ao usar Internet em WiFi público?",
         options: [
             {
@@ -158,6 +164,7 @@ const quizData = [
     },
     {
         id: 7,
+        level: "Iniciante",
         question: "Qual informação pessoal É SEGURO compartilhar nas redes sociais?",
         options: [
             {
@@ -184,6 +191,7 @@ const quizData = [
     },
     {
         id: 8,
+        level: "Avançado",
         question: "Como identificar um site falso (site de phishing)?",
         options: [
             {
@@ -210,6 +218,7 @@ const quizData = [
     },
     {
         id: 9,
+        level: "Intermediário",
         question: "O que você deve fazer para se proteger do Cyberbullying?",
         options: [
             {
@@ -236,6 +245,7 @@ const quizData = [
     },
     {
         id: 10,
+        level: "Avançado",
         question: "Por que é importante manter seu software e antivírus atualizados?",
         options: [
             {

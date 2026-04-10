@@ -11,6 +11,8 @@ Um jogo educativo em HTML estático desenvolvido para alertar e instruir a popul
 - 🎯 **Feedback Educativo**: Cada resposta inclui uma explicação detalhada
 - 📊 **Resultados Detalhados**: Estatísticas finais com dicas personalizadas
 - 🎨 **Animações Suaves**: Transições visuais e animações CSS
+- 🔀 **Ordem Aleatória**: Perguntas, alternativas e níveis aparecem em ordem embaralhada a cada tentativa
+- 📥 **Base por CSV de Equipe**: O app lê automaticamente `perguntas.csv` versionado no projeto
 
 ## 🎮 Tópicos do Quiz
 
@@ -33,6 +35,7 @@ Projeto TecnoMack/
 ├── styles.css          # Estilos CSS (incluindo cores do protótipo)
 ├── script.js           # Lógica do quiz em JavaScript
 ├── quiz-data.js        # Dados das perguntas e respostas
+├── perguntas.csv       # Banco principal de perguntas (editado pela equipe)
 └── README.md           # Este arquivo
 ```
 
@@ -129,39 +132,48 @@ https://seu-usuario.github.io/Projeto-TecnoMack
 - Exibição de pontos em tempo real
 - Cálculo de percentual final
 
+### Banco de Perguntas por Excel/CSV
+- O site continua 100% estático (compatível com GitHub Pages)
+- A equipe pode criar/editar perguntas em planilha (Excel/Google Sheets)
+- Exporte para `CSV UTF-8` e salve como `perguntas.csv`
+- Coloque o arquivo na raiz do projeto e faça commit/push
+- Em produção, o quiz lê esse arquivo automaticamente
+- Se `perguntas.csv` estiver ausente ou inválido, o app usa `quiz-data.js` como fallback
+
 ### Tela de Resultados
 - Exibição do score em círculo visual
 - Classificação de desempenho
 - Dicas personalizadas de segurança
 - Opção de refazer o quiz
 
-## 🔄 Como Adicionar Mais Perguntas
+## 🔄 Fluxo de Conteúdo em Equipe
 
-1. Abra `quiz-data.js`
-2. Adicione uma nova pergunta ao array `quizData`:
+1. Time de pesquisa preenche uma planilha no formato definido abaixo
+2. Exporte como `CSV UTF-8`
+3. Renomeie para `perguntas.csv`
+4. Substitua o arquivo na raiz do projeto
+5. Faça commit e push
+6. GitHub Pages publica automaticamente o novo banco
 
-```javascript
-{
-    id: 11,
-    question: "Sua pergunta aqui?",
-    options: [
-        {
-            text: "Opção 1",
-            correct: false,
-            feedback: "Explicação desta resposta"
-        },
-        {
-            text: "Opção correta",
-            correct: true,
-            feedback: "Por que isto está correto"
-        },
-        // ... mais opções
-    ]
-}
+## 🧾 Formato do CSV (Excel)
+
+Use exatamente estas colunas no cabeçalho:
+
+```csv
+level,question,option1,option2,option3,option4,correctOption,feedback1,feedback2,feedback3,feedback4
 ```
 
-3. Atualize o número de perguntas se necessário
-4. Faça o commit e push das mudanças
+Exemplo de linha:
+
+```csv
+Intermediario,"Qual senha e mais segura?","123456","Data de nascimento","Senha longa com letras numeros e simbolos","Nome+123",3,"Fraca","Fraca","Correto!","Fraca"
+```
+
+Regras:
+- `correctOption` deve ser `1`, `2`, `3` ou `4`
+- Cada pergunta deve ter 4 opções
+- Cada pergunta deve ter apenas 1 resposta correta
+- `level` pode ser, por exemplo: `Iniciante`, `Intermediario` ou `Avancado`
 
 ## 📱 Compatibilidade
 

@@ -36,6 +36,7 @@
                             <p><strong>Feedback:</strong> Respostas com explicações</p>
                         </div>
                     </div>
+
                     <button class="btn btn-primary" onclick="startQuiz()">Começar Quiz</button>
                 </div>
             </section>
@@ -48,6 +49,7 @@
                     </div>
                     <div class="question-info">
                         <span class="question-number">Pergunta <span id="current-question">1</span> de <span id="total-questions">10</span></span>
+                        <span class="question-level" id="question-level">Nível: -</span>
                         <span class="score">Pontos: <span id="current-score">0</span>/<span id="max-score">100</span></span>
                     </div>
 
@@ -81,7 +83,7 @@
                     <div class="results-summary">
                         <div class="summary-item">
                             <strong>Acertos:</strong>
-                            <span id="correct-count">0</span> de 10
+                            <span id="correct-count">0</span> de <span id="results-total-questions">10</span>
                         </div>
                         <div class="summary-item">
                             <strong>Percentual:</strong>

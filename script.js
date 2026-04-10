@@ -4,6 +4,193 @@ let score = 0;
 let userAnswers = [];
 let answeredQuestions = new Set();
 let quizInProgress = false;
+let activeQuizData = [];
+let quizSessionData = [];
+
+function shuffleArray(items) {
+    const array = [...items];
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function normalizeLevel(level) {
+    const value = (level || '').toString().trim().toLowerCase();
+    if (!value) return 'Intermediário';
+    if (value.startsWith('ini') || value === 'easy') return 'Iniciante';
+    if (value.startsWith('ava') || value === 'hard') return 'Avançado';
+    if (value.startsWith('int') || value === 'medium') return 'Intermediário';
+    return level.toString().trim();
+}
+
+function normalizeQuestion(question, index) {
+    return {
+        id: question.id || index + 1,
+        level: normalizeLevel(question.level),
+        question: (question.question || '').toString().trim(),
+        options: (question.options || []).map(option => ({
+            text: (option.text || '').toString().trim(),
+            correct: Boolean(option.correct),
+            feedback: (option.feedback || '').toString().trim()
+        }))
+    };
+}
+
+function validateQuestionBank(questionBank) {
+    if (!Array.isArray(questionBank) || questionBank.length === 0) {
+        throw new Error('O banco de perguntas está vazio.');
+    }
+
+    questionBank.forEach((question, index) => {
+        if (!question.question) {
+            throw new Error(`A pergunta ${index + 1} está sem enunciado.`);
+        }
+        if (!Array.isArray(question.options) || question.options.length < 2) {
+            throw new Error(`A pergunta ${index + 1} precisa ter ao menos 2 opções.`);
+        }
+        const correctCount = question.options.filter(option => option.correct).length;
+        if (correctCount !== 1) {
+            throw new Error(`A pergunta ${index + 1} precisa ter exatamente 1 alternativa correta.`);
+        }
+    });
+}
+
+function parseCsvLine(line) {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    values.push(current.trim());
+    return values;
+}
+
+function parseQuestionsCsv(csvText) {
+    const lines = csvText
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    if (lines.length < 2) {
+        throw new Error('CSV inválido: inclua cabeçalho e pelo menos uma pergunta.');
+    }
+
+    const headers = parseCsvLine(lines[0]).map(header => header.toLowerCase());
+    const expectedHeaders = [
+        'level',
+        'question',
+        'option1',
+        'option2',
+        'option3',
+        'option4',
+        'correctoption',
+        'feedback1',
+        'feedback2',
+        'feedback3',
+        'feedback4'
+    ];
+
+    const missingHeaders = expectedHeaders.filter(header => !headers.includes(header));
+    if (missingHeaders.length > 0) {
+        throw new Error(`CSV inválido: faltam colunas (${missingHeaders.join(', ')}).`);
+    }
+
+    const indexByHeader = Object.fromEntries(headers.map((header, idx) => [header, idx]));
+    const questions = lines.slice(1).map((line, rowIndex) => {
+        const columns = parseCsvLine(line);
+        const getValue = (header) => columns[indexByHeader[header]] || '';
+        const correctOption = Number(getValue('correctoption'));
+
+        if (Number.isNaN(correctOption) || correctOption < 1 || correctOption > 4) {
+            throw new Error(`Linha ${rowIndex + 2}: correctOption deve ser um número entre 1 e 4.`);
+        }
+
+        const options = [1, 2, 3, 4].map(optionNumber => {
+            const text = getValue(`option${optionNumber}`).trim();
+            const feedback = getValue(`feedback${optionNumber}`).trim();
+
+            if (!text) {
+                throw new Error(`Linha ${rowIndex + 2}: option${optionNumber} está vazia.`);
+            }
+
+            return {
+                text,
+                correct: optionNumber === correctOption,
+                feedback: feedback || 'Confira este tema para reforçar seu aprendizado.'
+            };
+        });
+
+        const question = getValue('question').trim();
+        if (!question) {
+            throw new Error(`Linha ${rowIndex + 2}: question está vazia.`);
+        }
+
+        return {
+            id: rowIndex + 1,
+            level: normalizeLevel(getValue('level')),
+            question,
+            options
+        };
+    });
+
+    return questions;
+}
+
+async function loadActiveQuestionBank() {
+    const fallbackQuestionBank = quizData.map(normalizeQuestion);
+
+    try {
+        const response = await fetch('perguntas.csv', { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const csvText = await response.text();
+        const parsedQuestions = parseQuestionsCsv(csvText).map(normalizeQuestion);
+        validateQuestionBank(parsedQuestions);
+        activeQuizData = parsedQuestions;
+        console.log('Banco carregado de perguntas.csv com', parsedQuestions.length, 'perguntas');
+    } catch (error) {
+        validateQuestionBank(fallbackQuestionBank);
+        activeQuizData = fallbackQuestionBank;
+        console.warn('Usando quiz-data.js como fallback:', error.message);
+    }
+}
+
+function buildSessionQuestionBank() {
+    // Embaralha perguntas e opções para variar ordem e níveis a cada execução.
+    return shuffleArray(activeQuizData).map(question => {
+        const shuffledOptions = shuffleArray(question.options);
+        return {
+            ...question,
+            options: shuffledOptions
+        };
+    });
+}
+
+function updateQuestionCounters() {
+    const totalQuestions = quizSessionData.length || activeQuizData.length;
+    document.getElementById('total-questions').textContent = totalQuestions;
+    document.getElementById('max-score').textContent = totalQuestions * 10;
+}
 
 // Initialize quiz
 function startQuiz() {
@@ -12,13 +199,15 @@ function startQuiz() {
     userAnswers = [];
     answeredQuestions = new Set();
     quizInProgress = true;
+    quizSessionData = buildSessionQuestionBank();
 
     // Hide welcome screen and show quiz screen
     document.getElementById('welcome-screen').classList.remove('active');
     document.getElementById('quiz-screen').classList.add('active');
 
     // Update total questions count
-    document.getElementById('total-questions').textContent = quizData.length;
+    updateQuestionCounters();
+    document.getElementById('current-score').textContent = '0';
 
     // Load first question
     loadQuestion();
@@ -26,12 +215,14 @@ function startQuiz() {
 
 // Load current question
 function loadQuestion() {
-    const question = quizData[currentQuestionIndex];
+    const question = quizSessionData[currentQuestionIndex];
+    const totalQuestions = quizSessionData.length;
     
     // Update progress
-    const progress = ((currentQuestionIndex + 1) / quizData.length) * 100;
+    const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
     document.getElementById('progress-fill').style.width = progress + '%';
     document.getElementById('current-question').textContent = currentQuestionIndex + 1;
+    document.getElementById('question-level').textContent = `Nível: ${question.level || 'Intermediário'}`;
 
     // Update question text
     document.getElementById('question-text').textContent = question.question;
@@ -98,13 +289,13 @@ function selectOption(optionIndex) {
         return; // Already answered
     }
 
-    const question = quizData[currentQuestionIndex];
+    const question = quizSessionData[currentQuestionIndex];
     userAnswers[currentQuestionIndex] = optionIndex;
     answeredQuestions.add(currentQuestionIndex);
 
     // Update score
     if (question.options[optionIndex].correct) {
-        score += 10; // Each question worth 10 points (10 questions total)
+        score += 10; // Each question is worth 10 points.
     }
 
     document.getElementById('current-score').textContent = score;
@@ -129,7 +320,7 @@ function updateQuizButtons() {
     }
 
     // Show/hide next button or finish button
-    if (currentQuestionIndex < quizData.length - 1) {
+    if (currentQuestionIndex < quizSessionData.length - 1) {
         btnNext.style.display = 'block';
         btnNext.textContent = 'Próxima →';
         btnNext.disabled = !answeredQuestions.has(currentQuestionIndex);
@@ -154,7 +345,7 @@ function nextQuestion() {
         return; // Must answer current question first
     }
 
-    if (currentQuestionIndex < quizData.length - 1) {
+    if (currentQuestionIndex < quizSessionData.length - 1) {
         currentQuestionIndex++;
         loadQuestion();
     } else {
@@ -172,12 +363,14 @@ function showResults() {
     document.getElementById('results-screen').classList.add('active');
 
     // Calculate final score percentage
-    const percentage = Math.round((score / 100) * 100);
+    const maxScore = quizSessionData.length * 10;
+    const percentage = Math.round((score / maxScore) * 100);
     const correctCount = score / 10;
 
     // Update results
     document.getElementById('final-score').textContent = percentage;
     document.getElementById('correct-count').textContent = correctCount;
+    document.getElementById('results-total-questions').textContent = quizSessionData.length;
     document.getElementById('percentage').textContent = percentage;
 
     // Show appropriate message based on performance
@@ -247,6 +440,8 @@ function restartQuiz() {
 }
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Quiz initialized with', quizData.length, 'questions');
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadActiveQuestionBank();
+    updateQuestionCounters();
+    console.log('Quiz initialized with', activeQuizData.length, 'questions');
 });
