@@ -6,6 +6,9 @@ let answeredQuestions = new Set();
 let quizInProgress = false;
 let activeQuizData = [];
 let quizSessionData = [];
+let activeQuestionBankSource = 'csv';
+let activeQuestionBankErrorMessage = '';
+let dataSourceBannerHideTimer = null;
 
 function shuffleArray(items) {
     const array = [...items];
@@ -57,7 +60,27 @@ function validateQuestionBank(questionBank) {
     });
 }
 
-function parseCsvLine(line) {
+function detectCsvDelimiter(csvText) {
+    const headerLine = csvText
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .find(Boolean) || '';
+
+    const semicolonCount = (headerLine.match(/;/g) || []).length;
+    const commaCount = (headerLine.match(/,/g) || []).length;
+
+    if (semicolonCount > commaCount) {
+        return ';';
+    }
+
+    if (commaCount > semicolonCount) {
+        return ',';
+    }
+
+    return ';';
+}
+
+function parseCsvLine(line, delimiter = ',') {
     const values = [];
     let current = '';
     let inQuotes = false;
@@ -71,7 +94,7 @@ function parseCsvLine(line) {
             } else {
                 inQuotes = !inQuotes;
             }
-        } else if (char === ',' && !inQuotes) {
+        } else if (char === delimiter && !inQuotes) {
             values.push(current.trim());
             current = '';
         } else {
@@ -84,6 +107,7 @@ function parseCsvLine(line) {
 }
 
 function parseQuestionsCsv(csvText) {
+    const delimiter = detectCsvDelimiter(csvText);
     const lines = csvText
         .split(/\r?\n/)
         .map(line => line.trim())
@@ -93,7 +117,7 @@ function parseQuestionsCsv(csvText) {
         throw new Error('CSV inválido: inclua cabeçalho e pelo menos uma pergunta.');
     }
 
-    const headers = parseCsvLine(lines[0]).map(header => header.toLowerCase());
+    const headers = parseCsvLine(lines[0], delimiter).map(header => header.toLowerCase());
     const expectedHeaders = [
         'level',
         'question',
@@ -115,7 +139,7 @@ function parseQuestionsCsv(csvText) {
 
     const indexByHeader = Object.fromEntries(headers.map((header, idx) => [header, idx]));
     const questions = lines.slice(1).map((line, rowIndex) => {
-        const columns = parseCsvLine(line);
+        const columns = parseCsvLine(line, delimiter);
         const getValue = (header) => columns[indexByHeader[header]] || '';
         const correctOption = Number(getValue('correctoption'));
 
@@ -167,12 +191,45 @@ async function loadActiveQuestionBank() {
         const parsedQuestions = parseQuestionsCsv(csvText).map(normalizeQuestion);
         validateQuestionBank(parsedQuestions);
         activeQuizData = parsedQuestions;
+        activeQuestionBankSource = 'csv';
+        activeQuestionBankErrorMessage = '';
         console.log('Banco carregado de perguntas.csv com', parsedQuestions.length, 'perguntas');
     } catch (error) {
         validateQuestionBank(fallbackQuestionBank);
         activeQuizData = fallbackQuestionBank;
+        activeQuestionBankSource = 'fallback';
+        activeQuestionBankErrorMessage = error.message;
         console.warn('Usando quiz-data.js como fallback:', error.message);
     }
+}
+
+function updateDataSourceBanner() {
+    const banner = document.getElementById('data-source-banner');
+    if (!banner) {
+        return;
+    }
+
+    if (dataSourceBannerHideTimer) {
+        clearTimeout(dataSourceBannerHideTimer);
+        dataSourceBannerHideTimer = null;
+    }
+
+    banner.classList.remove('using-csv', 'using-fallback', 'visible');
+
+    if (activeQuestionBankSource === 'csv') {
+        banner.textContent = 'Banco carregado do CSV: perguntas.csv';
+        banner.classList.add('using-csv', 'visible');
+    } else {
+        const fallbackReason = activeQuestionBankErrorMessage
+            ? `Motivo: ${activeQuestionBankErrorMessage}`
+            : 'O CSV não pôde ser carregado.';
+        banner.textContent = `Usando fallback: quiz-data.js. ${fallbackReason}`;
+        banner.classList.add('using-fallback', 'visible');
+    }
+
+    dataSourceBannerHideTimer = setTimeout(() => {
+        banner.classList.remove('visible');
+    }, 4000);
 }
 
 function buildSessionQuestionBank() {
@@ -193,7 +250,11 @@ function updateQuestionCounters() {
 }
 
 // Initialize quiz
-function startQuiz() {
+async function startQuiz() {
+    if (!activeQuizData.length) {
+        await loadActiveQuestionBank();
+    }
+
     currentQuestionIndex = 0;
     score = 0;
     userAnswers = [];
@@ -204,6 +265,8 @@ function startQuiz() {
     // Hide welcome screen and show quiz screen
     document.getElementById('welcome-screen').classList.remove('active');
     document.getElementById('quiz-screen').classList.add('active');
+
+    updateDataSourceBanner();
 
     // Update total questions count
     updateQuestionCounters();
@@ -443,5 +506,6 @@ function restartQuiz() {
 document.addEventListener('DOMContentLoaded', async function() {
     await loadActiveQuestionBank();
     updateQuestionCounters();
+    updateDataSourceBanner();
     console.log('Quiz initialized with', activeQuizData.length, 'questions');
 });
