@@ -9,6 +9,13 @@ let quizSessionData = [];
 let activeQuestionBankSource = 'csv';
 let activeQuestionBankErrorMessage = '';
 let dataSourceBannerHideTimer = null;
+let eliminatedOptionsByQuestion = [];
+let hintsUsage = {
+    fifty: false,
+    skip: false,
+    university: false
+};
+let universitySuggestionByQuestion = {};
 
 function shuffleArray(items) {
     const array = [...items];
@@ -259,6 +266,13 @@ async function startQuiz() {
     score = 0;
     userAnswers = [];
     answeredQuestions = new Set();
+    eliminatedOptionsByQuestion = [];
+    hintsUsage = {
+        fifty: false,
+        skip: false,
+        university: false
+    };
+    universitySuggestionByQuestion = {};
     quizInProgress = true;
     quizSessionData = buildSessionQuestionBank();
 
@@ -300,7 +314,15 @@ function loadQuestion() {
 // Render options
 function renderOptions(question) {
     const optionsContainer = document.getElementById('options-container');
+    const feedbackPanel = document.getElementById('question-feedback');
     optionsContainer.innerHTML = '';
+    const isAnswered = answeredQuestions.has(currentQuestionIndex);
+    const eliminatedSet = eliminatedOptionsByQuestion[currentQuestionIndex] || new Set();
+
+    if (feedbackPanel) {
+        feedbackPanel.classList.remove('visible', 'correct', 'incorrect');
+        feedbackPanel.textContent = '';
+    }
 
     question.options.forEach((option, index) => {
         const optionDiv = document.createElement('div');
@@ -322,16 +344,21 @@ function renderOptions(question) {
             optionDiv.classList.add('selected');
         }
 
+        if (eliminatedSet.has(index) && !isAnswered) {
+            optionDiv.classList.add('eliminated', 'disabled');
+        }
+
         const inputId = `option-${currentQuestionIndex}-${index}`;
-        const isAnswered = answeredQuestions.has(currentQuestionIndex);
         
+        const shouldDisableOption = isAnswered || eliminatedSet.has(index);
+
         optionDiv.innerHTML = `
             <input 
                 type="radio" 
                 id="${inputId}" 
                 name="answer-${currentQuestionIndex}"
                 value="${index}"
-                ${isAnswered ? 'disabled' : ''}
+                ${shouldDisableOption ? 'disabled' : ''}
                 ${userAnswers[currentQuestionIndex] === index ? 'checked' : ''}
                 onchange="selectOption(${index})"
             />
@@ -339,11 +366,26 @@ function renderOptions(question) {
                 <span class="radio-custom"></span>
                 <span class="option-text">${option.text}</span>
             </label>
-            ${isAnswered ? `<div class="option-feedback">${option.feedback}</div>` : ''}
         `;
 
         optionsContainer.appendChild(optionDiv);
     });
+
+    if (isAnswered && feedbackPanel) {
+        const selectedIndex = userAnswers[currentQuestionIndex];
+        const selectedOption = question.options[selectedIndex];
+        const selectedIsCorrect = Boolean(selectedOption && selectedOption.correct);
+        const correctOption = question.options.find(option => option.correct);
+
+        feedbackPanel.classList.add('visible', selectedIsCorrect ? 'correct' : 'incorrect');
+        feedbackPanel.textContent = selectedIsCorrect
+            ? (selectedOption.feedback || 'Resposta correta! Continue assim.')
+            : (selectedOption.feedback || correctOption?.feedback || 'Resposta incorreta. Revise o conteúdo e tente novamente.');
+    } else if (feedbackPanel && universitySuggestionByQuestion[currentQuestionIndex]) {
+        feedbackPanel.classList.add('visible', 'suggestion');
+        feedbackPanel.textContent = universitySuggestionByQuestion[currentQuestionIndex];
+    }
+
 }
 
 // Select option
@@ -374,6 +416,11 @@ function selectOption(optionIndex) {
 function updateQuizButtons() {
     const btnPrevious = document.getElementById('btn-previous');
     const btnNext = document.getElementById('btn-next');
+    const btnHint = document.getElementById('btn-hint');
+    const btnCards = document.getElementById('btn-cards');
+    const btnSkip = document.getElementById('btn-skip');
+    const btnUniversity = document.getElementById('btn-university');
+    const currentAnswered = answeredQuestions.has(currentQuestionIndex);
 
     // Show/hide previous button
     if (currentQuestionIndex > 0) {
@@ -386,12 +433,136 @@ function updateQuizButtons() {
     if (currentQuestionIndex < quizSessionData.length - 1) {
         btnNext.style.display = 'block';
         btnNext.textContent = 'Próxima →';
-        btnNext.disabled = !answeredQuestions.has(currentQuestionIndex);
+        btnNext.disabled = !currentAnswered;
     } else {
         btnNext.style.display = 'block';
         btnNext.textContent = 'Terminar Quiz';
-        btnNext.disabled = !answeredQuestions.has(currentQuestionIndex);
+        btnNext.disabled = !currentAnswered;
     }
+
+    if (btnHint) {
+        const hasAnyHintLeft = !hintsUsage.fifty || !hintsUsage.skip || !hintsUsage.university;
+        btnHint.disabled = currentAnswered || !hasAnyHintLeft;
+        btnHint.textContent = hasAnyHintLeft ? '💡 Dicas' : '💡 Dicas usadas';
+    }
+
+    if (btnCards) {
+        btnCards.disabled = currentAnswered || hintsUsage.fifty;
+        btnCards.textContent = hintsUsage.fifty ? '🃏 Cartas usadas' : '🃏 Cartas';
+    }
+
+    if (btnSkip) {
+        btnSkip.disabled = hintsUsage.skip;
+        btnSkip.textContent = hintsUsage.skip ? '⏭ Pular usado' : '⏭ Pular';
+    }
+
+    if (btnUniversity) {
+        btnUniversity.disabled = currentAnswered || hintsUsage.university;
+        btnUniversity.textContent = hintsUsage.university ? '🎓 Usado' : '🎓 Universitários';
+    }
+}
+
+function openHintModal() {
+    if (answeredQuestions.has(currentQuestionIndex)) {
+        return;
+    }
+
+    const modal = document.getElementById('hint-modal');
+    const hintFifty = document.getElementById('hint-fifty');
+    const hintSkip = document.getElementById('hint-skip');
+    const hintUniversity = document.getElementById('hint-university');
+
+    if (!modal || !hintFifty || !hintSkip || !hintUniversity) {
+        return;
+    }
+
+    hintFifty.disabled = hintsUsage.fifty;
+    hintSkip.disabled = hintsUsage.skip;
+    hintUniversity.disabled = hintsUsage.university;
+
+    modal.classList.add('visible');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeHintModal() {
+    const modal = document.getElementById('hint-modal');
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+function useFiftyHint() {
+    if (hintsUsage.fifty || answeredQuestions.has(currentQuestionIndex)) {
+        return;
+    }
+
+    const question = quizSessionData[currentQuestionIndex];
+    const eliminatedSet = eliminatedOptionsByQuestion[currentQuestionIndex] || new Set();
+
+    const wrongOptions = question.options
+        .map((option, index) => ({ option, index }))
+        .filter(item => !item.option.correct && !eliminatedSet.has(item.index))
+        .map(item => item.index);
+
+    const removeList = shuffleArray(wrongOptions).slice(0, Math.min(2, wrongOptions.length));
+    removeList.forEach(index => eliminatedSet.add(index));
+
+    eliminatedOptionsByQuestion[currentQuestionIndex] = eliminatedSet;
+    hintsUsage.fifty = true;
+
+    closeHintModal();
+    renderOptions(question);
+    updateQuizButtons();
+}
+
+function useSkipHint() {
+    if (hintsUsage.skip) {
+        return;
+    }
+
+    hintsUsage.skip = true;
+    closeHintModal();
+
+    if (currentQuestionIndex < quizSessionData.length - 1) {
+        currentQuestionIndex++;
+        loadQuestion();
+    } else {
+        showResults();
+    }
+
+    updateQuizButtons();
+}
+
+function useUniversityHint() {
+    if (hintsUsage.university || answeredQuestions.has(currentQuestionIndex)) {
+        return;
+    }
+
+    const question = quizSessionData[currentQuestionIndex];
+    const correctIndex = question.options.findIndex(option => option.correct);
+    const wrongIndexes = question.options
+        .map((option, index) => ({ option, index }))
+        .filter(item => !item.option.correct)
+        .map(item => item.index);
+
+    const pickCorrect = Math.random() < 0.7;
+    const suggestedIndex = pickCorrect || wrongIndexes.length === 0
+        ? correctIndex
+        : wrongIndexes[Math.floor(Math.random() * wrongIndexes.length)];
+
+    const confidence = pickCorrect
+        ? 70 + Math.floor(Math.random() * 21)
+        : 45 + Math.floor(Math.random() * 16);
+
+    universitySuggestionByQuestion[currentQuestionIndex] = `Universitários sugerem a alternativa: \"${question.options[suggestedIndex].text}\" (confiança aproximada: ${confidence}%).`;
+    hintsUsage.university = true;
+
+    closeHintModal();
+    renderOptions(question);
+    updateQuizButtons();
 }
 
 // Previous question
@@ -480,8 +651,8 @@ function generateTips() {
     const tipsList = document.getElementById('tips-list');
     tipsList.innerHTML = '';
 
-    // Show 5 random tips
-    const selectedTips = tips.sort(() => 0.5 - Math.random()).slice(0, 5);
+    // Show fewer tips to keep results visible in a single screen.
+    const selectedTips = tips.sort(() => 0.5 - Math.random()).slice(0, 3);
     selectedTips.forEach(tip => {
         const li = document.createElement('li');
         li.textContent = tip;
@@ -496,10 +667,203 @@ function restartQuiz() {
     score = 0;
     userAnswers = [];
     answeredQuestions = new Set();
+    eliminatedOptionsByQuestion = [];
+    hintsUsage = {
+        fifty: false,
+        skip: false,
+        university: false
+    };
+    universitySuggestionByQuestion = {};
 
     // Hide results screen and show welcome screen
     document.getElementById('results-screen').classList.remove('active');
     document.getElementById('welcome-screen').classList.add('active');
+}
+
+// Generate PDF Report
+function gerarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    // Configurações
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let yPosition = 15;
+    const margin = 10;
+    const lineHeight = 6;
+    const contentWidth = pageWidth - 2 * margin;
+
+    // Cores
+    const corVerde = [46, 204, 113];
+    const corVermelho = [231, 76, 60];
+    const corAzul = [44, 62, 127];
+    const corTexto = [44, 62, 127];
+
+    // Função auxiliar para adicionar linha com quebra de página automática
+    function adicionarTexto(texto, options = {}) {
+        const { fontSize = 11, fontStyle = 'normal', color = corTexto, alignment = 'left' } = options;
+        doc.setFontSize(fontSize);
+        doc.setFont('Helvetica', fontStyle);
+        doc.setTextColor(color[0], color[1], color[2]);
+
+        const linhas = doc.splitTextToSize(texto, contentWidth);
+        const alturaTexto = linhas.length * lineHeight;
+
+        // Verificar se precisa de nova página
+        if (yPosition + alturaTexto > pageHeight - 15) {
+            doc.addPage();
+            yPosition = 15;
+        }
+
+        doc.text(linhas, margin + (alignment === 'center' ? contentWidth / 2 : 0), yPosition, {
+            align: alignment,
+            maxWidth: contentWidth
+        });
+
+        yPosition += alturaTexto + 3;
+    }
+
+    // Função auxiliar para adicionar caixa colorida
+    function adicionarCaixa(texto, cor, fontSize = 11) {
+        if (yPosition + 15 > pageHeight - 15) {
+            doc.addPage();
+            yPosition = 15;
+        }
+
+        const linhas = doc.splitTextToSize(texto, contentWidth - 4);
+        const altura = linhas.length * lineHeight + 4;
+
+        doc.setFillColor(cor[0], cor[1], cor[2]);
+        doc.setDrawColor(cor[0], cor[1], cor[2]);
+        doc.rect(margin, yPosition - 3, contentWidth, altura, 'F');
+
+        doc.setFontSize(fontSize);
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(linhas, margin + 2, yPosition + 1, { maxWidth: contentWidth - 4 });
+
+        yPosition += altura + 5;
+    }
+
+    // TÍTULO
+    doc.setFontSize(20);
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(corAzul[0], corAzul[1], corAzul[2]);
+    doc.text('Relatório de Desempenho', margin, yPosition, { align: 'left' });
+    yPosition += 8;
+
+    doc.setFontSize(14);
+    doc.setFont('Helvetica', 'bold');
+    doc.text('TecnoMack', margin, yPosition, { align: 'left' });
+    yPosition += 12;
+
+    // RESUMO
+    const maxScore = quizSessionData.length * 10;
+    const percentage = Math.round((score / maxScore) * 100);
+    const correctCount = score / 10;
+
+    doc.setFillColor(44, 62, 127);
+    doc.setDrawColor(44, 62, 127);
+    doc.rect(margin, yPosition - 3, contentWidth, 20, 'F');
+
+    doc.setFontSize(12);
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Percentual Final: ${percentage}%`, margin + 5, yPosition + 3);
+    doc.setFontSize(11);
+    doc.text(`Acertos: ${correctCount} de ${quizSessionData.length}`, margin + 5, yPosition + 10);
+    doc.text(`Pontuação Total: ${score} / ${maxScore}`, margin + 5, yPosition + 17);
+
+    yPosition += 28;
+
+    // DETALHES DAS QUESTÕES
+    doc.setFontSize(13);
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(corAzul[0], corAzul[1], corAzul[2]);
+    doc.text('Detalhes das Questões', margin, yPosition);
+    yPosition += 10;
+
+    // Iterar por cada questão
+    quizSessionData.forEach((question, index) => {
+        const userAnswerIndex = userAnswers[index];
+        const selectedOption = question.options[userAnswerIndex];
+        const isCorrect = selectedOption && selectedOption.correct;
+        const correctOption = question.options.find(opt => opt.correct);
+
+        // Número e status da questão
+        const statusText = isCorrect ? '✓ ACERTOU' : '✗ ERROU';
+        const statusColor = isCorrect ? corVerde : corVermelho;
+
+        if (yPosition + 30 > pageHeight - 15) {
+            doc.addPage();
+            yPosition = 15;
+        }
+
+        // Cabeçalho da questão
+        doc.setFontSize(10);
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(corAzul[0], corAzul[1], corAzul[2]);
+        doc.text(`Questão ${index + 1}`, margin, yPosition);
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.text(statusText, margin + 100, yPosition);
+        yPosition += 6;
+
+        // Enunciado
+        doc.setFontSize(10);
+        doc.setFont('Helvetica', 'normal');
+        doc.setTextColor(corTexto[0], corTexto[1], corTexto[2]);
+        const linhasEnunciado = doc.splitTextToSize(`"${question.question}"`, contentWidth - 4);
+        doc.text(linhasEnunciado, margin + 2, yPosition);
+        yPosition += linhasEnunciado.length * lineHeight + 3;
+
+        // Alternativa selecionada
+        doc.setFontSize(9);
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(corTexto[0], corTexto[1], corTexto[2]);
+        doc.text('Sua Resposta:', margin, yPosition);
+        doc.setFont('Helvetica', 'normal');
+        const linhasResposta = doc.splitTextToSize(
+            selectedOption ? selectedOption.text : 'Não respondida',
+            contentWidth - 15
+        );
+        doc.text(linhasResposta, margin + 25, yPosition);
+        yPosition += Math.max(linhasResposta.length * lineHeight, 5) + 2;
+
+        // Se errou, mostrar resposta correta
+        if (!isCorrect && correctOption) {
+            doc.setFontSize(9);
+            doc.setFont('Helvetica', 'bold');
+            doc.setTextColor(corVerde[0], corVerde[1], corVerde[2]);
+            doc.text('Resposta Correta:', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
+            const linhasCorretas = doc.splitTextToSize(correctOption.text, contentWidth - 25);
+            doc.text(linhasCorretas, margin + 25, yPosition);
+            yPosition += Math.max(linhasCorretas.length * lineHeight, 5) + 2;
+        }
+
+        // Separador
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 6;
+    });
+
+    // RODAPÉ
+    yPosition = pageHeight - 20;
+    doc.setFontSize(9);
+    doc.setFont('Helvetica', 'italic');
+    doc.setTextColor(150, 150, 150);
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    doc.text(`Relatório gerado em: ${dataAtual}`, margin, yPosition);
+    doc.text('TecnoMack - Educação em Segurança Digital', margin, yPosition + 5);
+
+    // Download
+    doc.save('Relatorio_TecnoMack.pdf');
 }
 
 // Initialize on page load
@@ -508,4 +872,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     updateQuestionCounters();
     updateDataSourceBanner();
     console.log('Quiz initialized with', activeQuizData.length, 'questions');
+});
+
+document.addEventListener('click', (event) => {
+    const modal = document.getElementById('hint-modal');
+    if (!modal || !modal.classList.contains('visible')) {
+        return;
+    }
+
+    if (event.target === modal) {
+        closeHintModal();
+    }
 });
