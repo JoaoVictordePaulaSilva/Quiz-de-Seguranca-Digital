@@ -855,6 +855,16 @@ body {
         flex: 0 0 auto;
     }
 
+    .hint-actions .btn:last-child {
+        font-size: 0.78rem;
+        line-height: 1.1;
+        letter-spacing: 0;
+        padding-left: 0.32rem;
+        padding-right: 0.32rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
     .btn {
         width: 100%;
         flex: 1;
