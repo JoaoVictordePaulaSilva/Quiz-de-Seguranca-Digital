@@ -888,25 +888,23 @@ body {
     }
 
     .options {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-template-rows: auto auto;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
         gap: 0.3rem;
         overflow: visible;
     }
 
     .option {
-        padding: 0.4rem 0.42rem;
-        min-height: 52px;
+        padding: 0.48rem 0.5rem;
+        min-height: auto;
     }
 
     .option-text {
         font-size: 0.92rem;
         line-height: 1.18;
-        display: -webkit-box;
-        line-clamp: 2;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+        display: block;
+        overflow: visible;
+        white-space: normal;
     }
 
     .question-feedback {
@@ -990,7 +988,7 @@ body {
     }
 
     .option-text {
-        font-size: 0.86rem;
+        font-size: 0.88rem;
     }
 
     .question-text {
