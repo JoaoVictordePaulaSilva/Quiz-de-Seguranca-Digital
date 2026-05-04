@@ -6,6 +6,7 @@ let answeredQuestions = new Set();
 let quizInProgress = false;
 let activeQuizData = [];
 let quizSessionData = [];
+let selectedDifficulty = 'Misto'; // Default difficulty
 let activeQuestionBankSource = 'csv';
 let activeQuestionBankErrorMessage = '';
 let dataSourceBannerHideTimer = null;
@@ -239,9 +240,9 @@ function updateDataSourceBanner() {
     }, 4000);
 }
 
-function buildSessionQuestionBank() {
+function buildSessionQuestionBank(questions = activeQuizData) {
     // Embaralha perguntas e opções para variar ordem e níveis a cada execução.
-    return shuffleArray(activeQuizData).map(question => {
+    return shuffleArray(questions).map(question => {
         const shuffledOptions = shuffleArray(question.options);
         return {
             ...question,
@@ -256,10 +257,50 @@ function updateQuestionCounters() {
     document.getElementById('max-score').textContent = totalQuestions * 10;
 }
 
+// Difficulty Selection Functions
+function showDifficultySelection() {
+    document.getElementById('welcome-screen').classList.remove('active');
+    document.getElementById('difficulty-screen').style.display = 'flex';
+}
+
+function hideDifficultySelection() {
+    document.getElementById('difficulty-screen').style.display = 'none';
+    document.getElementById('welcome-screen').classList.add('active');
+}
+
+function filterQuestionsByDifficulty(questions, difficulty) {
+    let filtered;
+    
+    if (difficulty === 'Misto') {
+        filtered = questions;
+        // Limita a 20 perguntas para o modo Misto
+        return filtered.slice(0, 20);
+    }
+    
+    filtered = questions.filter(q => q.level === difficulty);
+    // Limita a 10 perguntas para cada nível de dificuldade
+    return filtered.slice(0, 10);
+}
+
+function startQuizWithDifficulty(difficulty) {
+    selectedDifficulty = difficulty;
+    startQuiz();
+}
+
 // Initialize quiz
 async function startQuiz() {
     if (!activeQuizData.length) {
         await loadActiveQuestionBank();
+    }
+
+    // Filter questions by selected difficulty
+    let filteredQuestions = filterQuestionsByDifficulty(activeQuizData, selectedDifficulty);
+    
+    // If filtered list has fewer than 10 questions and is not Misto, fallback to Misto (20 questions)
+    if (filteredQuestions.length < 10 && selectedDifficulty !== 'Misto') {
+        console.warn(`Apenas ${filteredQuestions.length} perguntas encontradas para "${selectedDifficulty}". Usando modo Misto com 20 perguntas.`);
+        filteredQuestions = filterQuestionsByDifficulty(activeQuizData, 'Misto');
+        selectedDifficulty = 'Misto';
     }
 
     currentQuestionIndex = 0;
@@ -274,10 +315,11 @@ async function startQuiz() {
     };
     universitySuggestionByQuestion = {};
     quizInProgress = true;
-    quizSessionData = buildSessionQuestionBank();
+    quizSessionData = buildSessionQuestionBank(filteredQuestions);
 
-    // Hide welcome screen and show quiz screen
+    // Hide welcome/difficulty screens and show quiz screen
     document.getElementById('welcome-screen').classList.remove('active');
+    document.getElementById('difficulty-screen').style.display = 'none';
     document.getElementById('quiz-screen').classList.add('active');
 
     updateDataSourceBanner();
@@ -319,8 +361,9 @@ function renderOptions(question) {
     const isAnswered = answeredQuestions.has(currentQuestionIndex);
     const eliminatedSet = eliminatedOptionsByQuestion[currentQuestionIndex] || new Set();
 
-    if (feedbackPanel) {
-        feedbackPanel.classList.remove('visible', 'correct', 'incorrect');
+    // Only clear feedback if question is not answered yet
+    if (!isAnswered && feedbackPanel) {
+        feedbackPanel.classList.remove('visible', 'correct', 'incorrect', 'suggestion');
         feedbackPanel.textContent = '';
     }
 
@@ -377,11 +420,13 @@ function renderOptions(question) {
         const selectedIsCorrect = Boolean(selectedOption && selectedOption.correct);
         const correctOption = question.options.find(option => option.correct);
 
+        feedbackPanel.classList.remove('suggestion');
         feedbackPanel.classList.add('visible', selectedIsCorrect ? 'correct' : 'incorrect');
         feedbackPanel.textContent = selectedIsCorrect
             ? (selectedOption.feedback || 'Resposta correta! Continue assim.')
             : (selectedOption.feedback || correctOption?.feedback || 'Resposta incorreta. Revise o conteúdo e tente novamente.');
-    } else if (feedbackPanel && universitySuggestionByQuestion[currentQuestionIndex]) {
+    } else if (!isAnswered && feedbackPanel && universitySuggestionByQuestion[currentQuestionIndex]) {
+        feedbackPanel.classList.remove('correct', 'incorrect');
         feedbackPanel.classList.add('visible', 'suggestion');
         feedbackPanel.textContent = universitySuggestionByQuestion[currentQuestionIndex];
     }
@@ -416,23 +461,20 @@ function selectOption(optionIndex) {
 function updateQuizButtons() {
     const btnPrevious = document.getElementById('btn-previous');
     const btnNext = document.getElementById('btn-next');
-    const btnHint = document.getElementById('btn-hint');
     const btnCards = document.getElementById('btn-cards');
     const btnSkip = document.getElementById('btn-skip');
     const btnUniversity = document.getElementById('btn-university');
     const currentAnswered = answeredQuestions.has(currentQuestionIndex);
 
-    // Show/hide previous button
-    if (currentQuestionIndex > 0) {
-        btnPrevious.style.display = 'block';
-    } else {
-        btnPrevious.style.display = 'none';
+    // Enable/disable previous button based on position
+    if (btnPrevious) {
+        btnPrevious.disabled = currentQuestionIndex === 0;
     }
 
     // Show/hide next button or finish button
     if (currentQuestionIndex < quizSessionData.length - 1) {
         btnNext.style.display = 'block';
-        btnNext.textContent = 'Próxima →';
+        btnNext.textContent = 'Próxima';
         btnNext.disabled = !currentAnswered;
     } else {
         btnNext.style.display = 'block';
@@ -440,25 +482,20 @@ function updateQuizButtons() {
         btnNext.disabled = !currentAnswered;
     }
 
-    if (btnHint) {
-        const hasAnyHintLeft = !hintsUsage.fifty || !hintsUsage.skip || !hintsUsage.university;
-        btnHint.disabled = currentAnswered || !hasAnyHintLeft;
-        btnHint.textContent = hasAnyHintLeft ? '💡 Dicas' : '💡 Dicas usadas';
-    }
-
+    // Each hint can be used only once per question (independently)
     if (btnCards) {
         btnCards.disabled = currentAnswered || hintsUsage.fifty;
-        btnCards.textContent = hintsUsage.fifty ? '🃏 Cartas usadas' : '🃏 Cartas';
+        btnCards.textContent = hintsUsage.fifty ? 'Cartas usadas' : 'Cartas';
     }
 
     if (btnSkip) {
-        btnSkip.disabled = hintsUsage.skip;
-        btnSkip.textContent = hintsUsage.skip ? '⏭ Pular usado' : '⏭ Pular';
+        btnSkip.disabled = currentAnswered || hintsUsage.skip;
+        btnSkip.textContent = hintsUsage.skip ? 'Pular usado' : 'Pular';
     }
 
     if (btnUniversity) {
         btnUniversity.disabled = currentAnswered || hintsUsage.university;
-        btnUniversity.textContent = hintsUsage.university ? '🎓 Usado' : '🎓 Universitários';
+        btnUniversity.textContent = hintsUsage.university ? 'Universitários usado' : 'Universitários';
     }
 }
 
@@ -693,8 +730,8 @@ function gerarPDF() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     let yPosition = 15;
-    const margin = 10;
-    const lineHeight = 6;
+    const margin = 12;
+    const lineHeight = 5.5;
     const contentWidth = pageWidth - 2 * margin;
 
     // Cores
@@ -702,63 +739,18 @@ function gerarPDF() {
     const corVermelho = [231, 76, 60];
     const corAzul = [44, 62, 127];
     const corTexto = [44, 62, 127];
-
-    // Função auxiliar para adicionar linha com quebra de página automática
-    function adicionarTexto(texto, options = {}) {
-        const { fontSize = 11, fontStyle = 'normal', color = corTexto, alignment = 'left' } = options;
-        doc.setFontSize(fontSize);
-        doc.setFont('Helvetica', fontStyle);
-        doc.setTextColor(color[0], color[1], color[2]);
-
-        const linhas = doc.splitTextToSize(texto, contentWidth);
-        const alturaTexto = linhas.length * lineHeight;
-
-        // Verificar se precisa de nova página
-        if (yPosition + alturaTexto > pageHeight - 15) {
-            doc.addPage();
-            yPosition = 15;
-        }
-
-        doc.text(linhas, margin + (alignment === 'center' ? contentWidth / 2 : 0), yPosition, {
-            align: alignment,
-            maxWidth: contentWidth
-        });
-
-        yPosition += alturaTexto + 3;
-    }
-
-    // Função auxiliar para adicionar caixa colorida
-    function adicionarCaixa(texto, cor, fontSize = 11) {
-        if (yPosition + 15 > pageHeight - 15) {
-            doc.addPage();
-            yPosition = 15;
-        }
-
-        const linhas = doc.splitTextToSize(texto, contentWidth - 4);
-        const altura = linhas.length * lineHeight + 4;
-
-        doc.setFillColor(cor[0], cor[1], cor[2]);
-        doc.setDrawColor(cor[0], cor[1], cor[2]);
-        doc.rect(margin, yPosition - 3, contentWidth, altura, 'F');
-
-        doc.setFontSize(fontSize);
-        doc.setFont('Helvetica', 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.text(linhas, margin + 2, yPosition + 1, { maxWidth: contentWidth - 4 });
-
-        yPosition += altura + 5;
-    }
+    const corGray = [100, 100, 100];
 
     // TÍTULO
     doc.setFontSize(20);
     doc.setFont('Helvetica', 'bold');
     doc.setTextColor(corAzul[0], corAzul[1], corAzul[2]);
-    doc.text('Relatório de Desempenho', margin, yPosition, { align: 'left' });
-    yPosition += 8;
+    doc.text('Relatório de Desempenho', margin, yPosition);
+    yPosition += 7;
 
     doc.setFontSize(14);
     doc.setFont('Helvetica', 'bold');
-    doc.text('TecnoMack', margin, yPosition, { align: 'left' });
+    doc.text('TecnoMack - Quiz de Segurança Digital', margin, yPosition);
     yPosition += 12;
 
     // RESUMO
@@ -768,24 +760,22 @@ function gerarPDF() {
 
     doc.setFillColor(44, 62, 127);
     doc.setDrawColor(44, 62, 127);
-    doc.rect(margin, yPosition - 3, contentWidth, 20, 'F');
+    doc.rect(margin, yPosition - 2, contentWidth, 18, 'F');
 
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont('Helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text(`Percentual Final: ${percentage}%`, margin + 5, yPosition + 3);
-    doc.setFontSize(11);
-    doc.text(`Acertos: ${correctCount} de ${quizSessionData.length}`, margin + 5, yPosition + 10);
-    doc.text(`Pontuação Total: ${score} / ${maxScore}`, margin + 5, yPosition + 17);
+    doc.text(`Percentual Final: ${percentage}%`, margin + 3, yPosition + 2);
+    doc.text(`Acertos: ${correctCount}/${quizSessionData.length}  |  Pontos: ${score}/${maxScore}`, margin + 3, yPosition + 8);
 
-    yPosition += 28;
+    yPosition += 22;
 
-    // DETALHES DAS QUESTÕES
-    doc.setFontSize(13);
+    // DETALHES DAS QUESTÕES - TÍTULO
+    doc.setFontSize(12);
     doc.setFont('Helvetica', 'bold');
     doc.setTextColor(corAzul[0], corAzul[1], corAzul[2]);
-    doc.text('Detalhes das Questões', margin, yPosition);
-    yPosition += 10;
+    doc.text('Detalhes das Respostas', margin, yPosition);
+    yPosition += 8;
 
     // Iterar por cada questão
     quizSessionData.forEach((question, index) => {
@@ -794,73 +784,73 @@ function gerarPDF() {
         const isCorrect = selectedOption && selectedOption.correct;
         const correctOption = question.options.find(opt => opt.correct);
 
-        // Número e status da questão
+        // Verificar se precisa de nova página
+        if (yPosition + 20 > pageHeight - 12) {
+            doc.addPage();
+            yPosition = 12;
+        }
+
+        // Cabeçalho da questão com status
         const statusText = isCorrect ? '✓ ACERTOU' : '✗ ERROU';
         const statusColor = isCorrect ? corVerde : corVermelho;
 
-        if (yPosition + 30 > pageHeight - 15) {
-            doc.addPage();
-            yPosition = 15;
-        }
-
-        // Cabeçalho da questão
         doc.setFontSize(10);
         doc.setFont('Helvetica', 'bold');
         doc.setTextColor(corAzul[0], corAzul[1], corAzul[2]);
-        doc.text(`Questão ${index + 1}`, margin, yPosition);
-
-        doc.setFont('Helvetica', 'bold');
+        doc.text(`Q${index + 1}. `, margin, yPosition);
+        
         doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-        doc.text(statusText, margin + 100, yPosition);
-        yPosition += 6;
+        doc.text(statusText, pageWidth - margin - 20, yPosition);
+        
+        yPosition += 5;
 
-        // Enunciado
-        doc.setFontSize(10);
-        doc.setFont('Helvetica', 'normal');
-        doc.setTextColor(corTexto[0], corTexto[1], corTexto[2]);
-        const linhasEnunciado = doc.splitTextToSize(`"${question.question}"`, contentWidth - 4);
-        doc.text(linhasEnunciado, margin + 2, yPosition);
-        yPosition += linhasEnunciado.length * lineHeight + 3;
-
-        // Alternativa selecionada
+        // Enunciado da questão
         doc.setFontSize(9);
-        doc.setFont('Helvetica', 'bold');
-        doc.setTextColor(corTexto[0], corTexto[1], corTexto[2]);
-        doc.text('Sua Resposta:', margin, yPosition);
         doc.setFont('Helvetica', 'normal');
-        const linhasResposta = doc.splitTextToSize(
-            selectedOption ? selectedOption.text : 'Não respondida',
-            contentWidth - 15
-        );
-        doc.text(linhasResposta, margin + 25, yPosition);
-        yPosition += Math.max(linhasResposta.length * lineHeight, 5) + 2;
+        doc.setTextColor(corTexto[0], corTexto[1], corTexto[2]);
+        
+        const questionLines = doc.splitTextToSize(question.question, contentWidth - 2);
+        doc.text(questionLines, margin + 1, yPosition);
+        yPosition += questionLines.length * lineHeight + 2;
 
-        // Se errou, mostrar resposta correta
+        // Sua resposta
+        doc.setFontSize(8);
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(corGray[0], corGray[1], corGray[2]);
+        doc.text('Sua resposta:', margin + 1, yPosition);
+        
+        doc.setFont('Helvetica', 'normal');
+        const userAnswerText = selectedOption ? selectedOption.text : 'Não respondida';
+        const answerLines = doc.splitTextToSize(userAnswerText, contentWidth - 8);
+        doc.text(answerLines, margin + 12, yPosition);
+        yPosition += answerLines.length * lineHeight + 2;
+
+        // Resposta correta (se errou)
         if (!isCorrect && correctOption) {
-            doc.setFontSize(9);
+            doc.setFontSize(8);
             doc.setFont('Helvetica', 'bold');
             doc.setTextColor(corVerde[0], corVerde[1], corVerde[2]);
-            doc.text('Resposta Correta:', margin, yPosition);
+            doc.text('Resposta correta:', margin + 1, yPosition);
+            
             doc.setFont('Helvetica', 'normal');
-            const linhasCorretas = doc.splitTextToSize(correctOption.text, contentWidth - 25);
-            doc.text(linhasCorretas, margin + 25, yPosition);
-            yPosition += Math.max(linhasCorretas.length * lineHeight, 5) + 2;
+            const correctLines = doc.splitTextToSize(correctOption.text, contentWidth - 8);
+            doc.text(correctLines, margin + 12, yPosition);
+            yPosition += correctLines.length * lineHeight + 2;
         }
 
-        // Separador
+        // Separador simples
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 6;
+        yPosition += 4;
     });
 
     // RODAPÉ
-    yPosition = pageHeight - 20;
-    doc.setFontSize(9);
+    yPosition = pageHeight - 10;
+    doc.setFontSize(8);
     doc.setFont('Helvetica', 'italic');
     doc.setTextColor(150, 150, 150);
     const dataAtual = new Date().toLocaleDateString('pt-BR');
     doc.text(`Relatório gerado em: ${dataAtual}`, margin, yPosition);
-    doc.text('TecnoMack - Educação em Segurança Digital', margin, yPosition + 5);
 
     // Download
     doc.save('Relatorio_TecnoMack.pdf');

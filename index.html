@@ -12,7 +12,7 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>🔐 TecnoMack</h1>
+            <h1>TecnoMack</h1>
             <p class="subtitle">Sua defesa contra os perigos da internet</p>
         </header>
 
@@ -25,20 +25,44 @@
                     <p>Teste seus conhecimentos sobre os perigos da internet e aprenda como se proteger.</p>
                     <div class="welcome-features">
                         <div class="feature">
-                            <span class="icon">📚</span>
                             <p><strong>Educativo:</strong> Aprenda sobre cyber ameaças</p>
                         </div>
                         <div class="feature">
-                            <span class="icon">🎯</span>
-                            <p><strong>Desafiador:</strong> 10 perguntas interessantes</p>
+                            <p><strong>Desafiador:</strong> Perguntas interessantes de diversos níveis</p>
                         </div>
                         <div class="feature">
-                            <span class="icon">✅</span>
                             <p><strong>Feedback:</strong> Respostas com explicações</p>
                         </div>
                     </div>
 
-                    <button class="btn btn-primary" onclick="startQuiz()">Começar Quiz</button>
+                    <button class="btn btn-primary" onclick="showDifficultySelection()">Começar Quiz</button>
+                </div>
+            </section>
+
+            <!-- Difficulty Selection Screen -->
+            <section id="difficulty-screen" class="screen screen-welcome active" style="display: none;">
+                <div class="welcome-box">
+                    <h2>Escolha o Nível de Dificuldade</h2>
+                    <p>Selecione o nível que deseja para o seu quiz:</p>
+                    <div class="difficulty-options">
+                        <button class="btn btn-difficulty" onclick="startQuizWithDifficulty('Iniciante')">
+                            <strong>Iniciante</strong>
+                            <span>10 perguntas fáceis</span>
+                        </button>
+                        <button class="btn btn-difficulty" onclick="startQuizWithDifficulty('Intermediário')">
+                            <strong>Intermediário</strong>
+                            <span>10 perguntas moderadas</span>
+                        </button>
+                        <button class="btn btn-difficulty" onclick="startQuizWithDifficulty('Avançado')">
+                            <strong>Avançado</strong>
+                            <span>10 perguntas desafiadoras</span>
+                        </button>
+                        <button class="btn btn-difficulty" onclick="startQuizWithDifficulty('Misto')">
+                            <strong>Misto</strong>
+                            <span>20 perguntas de todos os níveis</span>
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="hideDifficultySelection()">Voltar</button>
                 </div>
             </section>
 
@@ -62,14 +86,14 @@
                     </div>
 
                     <div class="hint-actions">
-                        <button class="btn btn-hint" onclick="useFiftyHint()" id="btn-cards" type="button">🃏 Cartas</button>
-                        <button class="btn btn-hint" onclick="useSkipHint()" id="btn-skip" type="button">⏭ Pular</button>
-                        <button class="btn btn-hint" onclick="useUniversityHint()" id="btn-university" type="button">🎓 Universitários</button>
+                        <button class="btn btn-hint" onclick="useFiftyHint()" id="btn-cards" type="button">Cartas</button>
+                        <button class="btn btn-hint" onclick="useSkipHint()" id="btn-skip" type="button">Pular</button>
+                        <button class="btn btn-hint" onclick="useUniversityHint()" id="btn-university" type="button">Universitários</button>
                     </div>
 
                     <div class="quiz-actions">
-                        <button class="btn btn-secondary" onclick="previousQuestion()" id="btn-previous" style="display: none;">← Anterior</button>
-                        <button class="btn btn-primary" onclick="nextQuestion()" id="btn-next" style="display: none;">Próxima →</button>
+                        <button class="btn btn-secondary" onclick="previousQuestion()" id="btn-previous">Anterior</button>
+                        <button class="btn btn-primary" onclick="nextQuestion()" id="btn-next" style="display: none;">Próxima</button>
                     </div>
                 </div>
             </section>
@@ -78,7 +102,7 @@
             <section id="results-screen" class="screen">
                 <div class="results-box">
                     <div class="results-header">
-                        <h2>Quiz Concluído! 🎉</h2>
+                        <h2>Quiz Concluído!</h2>
                         <div class="final-score">
                             <div class="score-circle">
                                 <span class="score-value" id="final-score">0</span>
@@ -101,12 +125,12 @@
                     </div>
 
                     <div class="results-actions">
-                        <button class="btn btn-primary" onclick="restartQuiz()">🔄 Fazer Quiz Novamente</button>
-                        <button class="btn btn-secondary" onclick="gerarPDF()">📄 Baixar Relatório em PDF</button>
+                        <button class="btn btn-primary" onclick="restartQuiz()">Fazer Quiz Novamente</button>
+                        <button class="btn btn-secondary" onclick="gerarPDF()">Baixar Relatório em PDF</button>
                     </div>
 
                     <div class="results-tips">
-                        <h3>💡 Dicas de Segurança</h3>
+                        <h3>Dicas de Segurança</h3>
                         <ul id="tips-list">
                             <li>Sempre verifique a fonte das informações antes de compartilhar</li>
                             <li>Use senhas fortes e únicas para cada conta</li>
