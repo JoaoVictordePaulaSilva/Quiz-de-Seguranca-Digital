@@ -17,6 +17,8 @@ let hintsUsage = {
     university: false
 };
 let universitySuggestionByQuestion = {};
+// Track hints used per question so each hint can be used once per question
+let hintsUsedByQuestion = [];
 
 function shuffleArray(items) {
     const array = [...items];
@@ -314,8 +316,11 @@ async function startQuiz() {
         university: false
     };
     universitySuggestionByQuestion = {};
+    hintsUsedByQuestion = [];
     quizInProgress = true;
     quizSessionData = buildSessionQuestionBank(filteredQuestions);
+    // Keep per-question records for report details
+    hintsUsedByQuestion = quizSessionData.map(() => ({ fifty: false, skip: false, university: false }));
 
     // Hide welcome/difficulty screens and show quiz screen
     document.getElementById('welcome-screen').classList.remove('active');
@@ -482,7 +487,9 @@ function updateQuizButtons() {
         btnNext.disabled = !currentAnswered;
     }
 
-    // Each hint can be used only once per question (independently)
+    // Each hint can be used only once in the entire quiz
+    const perQuestion = hintsUsedByQuestion[currentQuestionIndex] || { fifty: false, skip: false, university: false };
+
     if (btnCards) {
         btnCards.disabled = currentAnswered || hintsUsage.fifty;
         btnCards.textContent = hintsUsage.fifty ? 'Cartas usadas' : 'Cartas';
@@ -495,7 +502,7 @@ function updateQuizButtons() {
 
     if (btnUniversity) {
         btnUniversity.disabled = currentAnswered || hintsUsage.university;
-        btnUniversity.textContent = hintsUsage.university ? 'Universitários usado' : 'Universitários';
+        btnUniversity.textContent = hintsUsage.university ? 'Universitarios usado' : 'Universitarios';
     }
 }
 
@@ -513,9 +520,9 @@ function openHintModal() {
         return;
     }
 
-    hintFifty.disabled = hintsUsage.fifty;
-    hintSkip.disabled = hintsUsage.skip;
-    hintUniversity.disabled = hintsUsage.university;
+    hintFifty.disabled = answeredQuestions.has(currentQuestionIndex) || hintsUsage.fifty;
+    hintSkip.disabled = answeredQuestions.has(currentQuestionIndex) || hintsUsage.skip;
+    hintUniversity.disabled = answeredQuestions.has(currentQuestionIndex) || hintsUsage.university;
 
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
@@ -532,7 +539,7 @@ function closeHintModal() {
 }
 
 function useFiftyHint() {
-    if (hintsUsage.fifty || answeredQuestions.has(currentQuestionIndex)) {
+    if (answeredQuestions.has(currentQuestionIndex) || hintsUsage.fifty) {
         return;
     }
 
@@ -548,6 +555,8 @@ function useFiftyHint() {
     removeList.forEach(index => eliminatedSet.add(index));
 
     eliminatedOptionsByQuestion[currentQuestionIndex] = eliminatedSet;
+    hintsUsedByQuestion[currentQuestionIndex] = hintsUsedByQuestion[currentQuestionIndex] || { fifty: false, skip: false, university: false };
+    hintsUsedByQuestion[currentQuestionIndex].fifty = true;
     hintsUsage.fifty = true;
 
     closeHintModal();
@@ -556,10 +565,22 @@ function useFiftyHint() {
 }
 
 function useSkipHint() {
-    if (hintsUsage.skip) {
+    if (answeredQuestions.has(currentQuestionIndex) || hintsUsage.skip) {
         return;
     }
 
+    const question = quizSessionData[currentQuestionIndex];
+    const correctIndex = question.options.findIndex(option => option.correct);
+
+    // Skip counts as a correct answer
+    userAnswers[currentQuestionIndex] = correctIndex;
+    answeredQuestions.add(currentQuestionIndex);
+    score += 10;
+    document.getElementById('current-score').textContent = score;
+
+    const per = hintsUsedByQuestion[currentQuestionIndex] || { fifty: false, skip: false, university: false };
+    hintsUsedByQuestion[currentQuestionIndex] = per;
+    hintsUsedByQuestion[currentQuestionIndex].skip = true;
     hintsUsage.skip = true;
     closeHintModal();
 
@@ -574,7 +595,7 @@ function useSkipHint() {
 }
 
 function useUniversityHint() {
-    if (hintsUsage.university || answeredQuestions.has(currentQuestionIndex)) {
+    if (answeredQuestions.has(currentQuestionIndex) || hintsUsage.university) {
         return;
     }
 
@@ -595,6 +616,8 @@ function useUniversityHint() {
         : 45 + Math.floor(Math.random() * 16);
 
     universitySuggestionByQuestion[currentQuestionIndex] = `Universitários sugerem a alternativa: \"${question.options[suggestedIndex].text}\" (confiança aproximada: ${confidence}%).`;
+    hintsUsedByQuestion[currentQuestionIndex] = hintsUsedByQuestion[currentQuestionIndex] || { fifty: false, skip: false, university: false };
+    hintsUsedByQuestion[currentQuestionIndex].university = true;
     hintsUsage.university = true;
 
     closeHintModal();
@@ -758,6 +781,11 @@ function gerarPDF() {
     const percentage = Math.round((score / maxScore) * 100);
     const correctCount = score / 10;
 
+    // Contagem de dicas usadas (somente para relatório)
+    const totalFifty = hintsUsedByQuestion.filter(h => h && h.fifty).length;
+    const totalSkip = hintsUsedByQuestion.filter(h => h && h.skip).length;
+    const totalUniversity = hintsUsedByQuestion.filter(h => h && h.university).length;
+
     doc.setFillColor(44, 62, 127);
     doc.setDrawColor(44, 62, 127);
     doc.rect(margin, yPosition - 2, contentWidth, 18, 'F');
@@ -767,6 +795,9 @@ function gerarPDF() {
     doc.setTextColor(255, 255, 255);
     doc.text(`Percentual Final: ${percentage}%`, margin + 3, yPosition + 2);
     doc.text(`Acertos: ${correctCount}/${quizSessionData.length}  |  Pontos: ${score}/${maxScore}`, margin + 3, yPosition + 8);
+    doc.setFontSize(9);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`Dicas usadas: Cartas ${totalFifty} | Pular ${totalSkip} | Universitarios ${totalUniversity}`, margin + 3, yPosition + 14);
 
     yPosition += 22;
 
@@ -791,7 +822,7 @@ function gerarPDF() {
         }
 
         // Cabeçalho da questão com status
-        const statusText = isCorrect ? '✓ ACERTOU' : '✗ ERROU';
+        const statusText = isCorrect ? 'ACERTOU' : 'ERROU';
         const statusColor = isCorrect ? corVerde : corVermelho;
 
         doc.setFontSize(10);
@@ -800,7 +831,7 @@ function gerarPDF() {
         doc.text(`Q${index + 1}. `, margin, yPosition);
         
         doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-        doc.text(statusText, pageWidth - margin - 20, yPosition);
+        doc.text(statusText, pageWidth - margin - 24, yPosition);
         
         yPosition += 5;
 
@@ -818,11 +849,12 @@ function gerarPDF() {
         doc.setFont('Helvetica', 'bold');
         doc.setTextColor(corGray[0], corGray[1], corGray[2]);
         doc.text('Sua resposta:', margin + 1, yPosition);
-        
+
+        yPosition += lineHeight;
         doc.setFont('Helvetica', 'normal');
-        const userAnswerText = selectedOption ? selectedOption.text : 'Não respondida';
-        const answerLines = doc.splitTextToSize(userAnswerText, contentWidth - 8);
-        doc.text(answerLines, margin + 12, yPosition);
+        const userAnswerText = selectedOption ? selectedOption.text : 'Nao respondida';
+        const answerLines = doc.splitTextToSize(userAnswerText, contentWidth - 2);
+        doc.text(answerLines, margin + 1, yPosition);
         yPosition += answerLines.length * lineHeight + 2;
 
         // Resposta correta (se errou)
@@ -831,12 +863,23 @@ function gerarPDF() {
             doc.setFont('Helvetica', 'bold');
             doc.setTextColor(corVerde[0], corVerde[1], corVerde[2]);
             doc.text('Resposta correta:', margin + 1, yPosition);
-            
+
+            yPosition += lineHeight;
             doc.setFont('Helvetica', 'normal');
-            const correctLines = doc.splitTextToSize(correctOption.text, contentWidth - 8);
-            doc.text(correctLines, margin + 12, yPosition);
+            const correctLines = doc.splitTextToSize(correctOption.text, contentWidth - 2);
+            doc.text(correctLines, margin + 1, yPosition);
             yPosition += correctLines.length * lineHeight + 2;
         }
+
+        // Mostrar quais dicas foram usadas nesta questão
+        const perQ = hintsUsedByQuestion[index] || { fifty: false, skip: false, university: false };
+        doc.setFontSize(8);
+        doc.setFont('Helvetica', 'normal');
+        doc.setTextColor(120, 120, 120);
+        const hintsText = `Dicas: Cartas: ${perQ.fifty ? 'Sim' : 'Nao'} | Pular: ${perQ.skip ? 'Sim' : 'Nao'} | Universitarios: ${perQ.university ? 'Sim' : 'Nao'}`;
+        const hintsLines = doc.splitTextToSize(hintsText, contentWidth - 8);
+        doc.text(hintsLines, margin + 1, yPosition);
+        yPosition += hintsLines.length * lineHeight + 2;
 
         // Separador simples
         doc.setDrawColor(200, 200, 200);
