@@ -291,6 +291,8 @@ function startQuizWithDifficulty(difficulty) {
 
 // Initialize quiz
 async function startQuiz() {
+    currentSessionSaved = false; // Reset session save flag for new quiz
+    
     if (!activeQuizData.length) {
         await loadActiveQuestionBank();
     }
@@ -1008,6 +1010,11 @@ function showReport() {
     const reportContainer = document.getElementById('report-container');
     if (!reportScreen || !reportSummary || !reportContainer) return;
 
+    // Auto-save current quiz session if quiz was just completed
+    if (quizSessionData.length > 0 && userAnswers.length === quizSessionData.length) {
+        saveCurrentQuizAsReport();
+    }
+
     const analytics = calculateReportAnalytics(reports);
 
     let html = '';
@@ -1130,9 +1137,13 @@ function hideReport() {
 // --- Reports management (persist in localStorage) ---
 let reports = [];
 const REPORTS_KEY = 'tecnomack_reports_v1';
+let currentSessionSaved = false; // Track if current quiz session was already saved
 
 function saveCurrentQuizAsReport() {
     if (!quizSessionData.length) return;
+    
+    // Avoid saving the same session multiple times
+    if (currentSessionSaved) return;
     
     const id = 'r' + (Date.now().toString(36));
     const sessionTotal = quizSessionData.length;
@@ -1186,6 +1197,7 @@ function saveCurrentQuizAsReport() {
     
     reports.unshift(normalizeReport(item, reports.length));
     saveReports();
+    currentSessionSaved = true;
     
     // Refresh analytics display if report screen is open
     if (document.getElementById('report-screen')?.classList.contains('active')) {
