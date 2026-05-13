@@ -1,0 +1,186 @@
+{
+  "id": "r1778684706758Re",
+  "participant": "Relatorio_TecnoMack(Leonardo 2)",
+  "title": "Relatorio_TecnoMack(Leonardo 2)",
+  "date": "10/05/2026",
+  "mode": "Iniciante",
+  "totalQuestions": 10,
+  "correctAnswers": 7,
+  "percent": 70,
+  "approved": true,
+  "hints": {
+    "fifty": 1,
+    "skip": 0,
+    "university": 1
+  },
+  "questionErrors": {
+    "Q3": 1,
+    "Q5": 1,
+    "Q8": 1
+  },
+  "fullSessionData": [
+    {
+      "question": "Q1",
+      "userAnswerText": "Receber um código extra para confirmar o acesso",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": true,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q2",
+      "userAnswerText": "Bloquear contatos suspeitos, não compartilhar fotos íntimas e denunciar abusos",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q3",
+      "userAnswerText": "são iguais aos oficiais",
+      "correctAnswer": "têm erros no endereço",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q4",
+      "userAnswerText": "golpe",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q5",
+      "userAnswerText": "Ignorar notícias",
+      "correctAnswer": "Ver em várias fontes",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q6",
+      "userAnswerText": "Uma mistura de letras maiúsculas, minúsculas, números e símbolos",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q7",
+      "userAnswerText": "Ignorar ou denunciar como spam/phishing",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q8",
+      "userAnswerText": "Um tipo de vírus que destrói arquivos",
+      "correctAnswer": "Pedido urgente de dados pessoais",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": true
+      }
+    },
+    {
+      "question": "Q9",
+      "userAnswerText": "Para ver se é atual",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q10",
+      "userAnswerText": "enganar",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    }
+  ],
+  "hintsUsedByQuestion": [
+    {
+      "fifty": true,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": true
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    }
+  ],
+  "notes": "Importado de PDF"
+}

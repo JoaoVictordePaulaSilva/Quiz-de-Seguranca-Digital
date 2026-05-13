@@ -1,0 +1,187 @@
+{
+  "id": "r1778684706750Re",
+  "participant": "Relatorio_TecnoMack (Reginaldo 4)",
+  "title": "Relatorio_TecnoMack (Reginaldo 4)",
+  "date": "10/05/2026",
+  "mode": "Iniciante",
+  "totalQuestions": 10,
+  "correctAnswers": 6,
+  "percent": 60,
+  "approved": false,
+  "hints": {
+    "fifty": 0,
+    "skip": 0,
+    "university": 0
+  },
+  "questionErrors": {
+    "Q1": 1,
+    "Q2": 1,
+    "Q4": 1,
+    "Q5": 1
+  },
+  "fullSessionData": [
+    {
+      "question": "Q1",
+      "userAnswerText": "proteger dados",
+      "correctAnswer": "espalhar desinformação em massa",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q2",
+      "userAnswerText": "corrigir notícias",
+      "correctAnswer": "espalhar conteúdo viral",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q3",
+      "userAnswerText": "Para corrigir vulnerabilidades de segurança e proteger contra novas ameaças",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q4",
+      "userAnswerText": "Pedir muitas informações pessoais sem justificativa",
+      "correctAnswer": "Ter um endereço (URL) muito parecido, mas com pequenas diferenças",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q5",
+      "userAnswerText": "Não usar qualquer site que peça senha",
+      "correctAnswer": "Usar uma vpn (rede privada virtual) para criptografar sua conexão",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q6",
+      "userAnswerText": "bots e contas falsas",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q7",
+      "userAnswerText": "IA",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q8",
+      "userAnswerText": "Fontes oficiais e checagem",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q9",
+      "userAnswerText": "Contúdos manipulados por IA",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q10",
+      "userAnswerText": "Domínio estranho",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    }
+  ],
+  "hintsUsedByQuestion": [
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    }
+  ],
+  "notes": "Importado de PDF"
+}

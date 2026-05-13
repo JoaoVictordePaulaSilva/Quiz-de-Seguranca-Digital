@@ -1,0 +1,185 @@
+{
+  "id": "r1778684706724Re",
+  "participant": "Relatorio_TecnoMack (Reginaldo 1)",
+  "title": "Relatorio_TecnoMack (Reginaldo 1)",
+  "date": "10/05/2026",
+  "mode": "Iniciante",
+  "totalQuestions": 10,
+  "correctAnswers": 8,
+  "percent": 80,
+  "approved": true,
+  "hints": {
+    "fifty": 0,
+    "skip": 0,
+    "university": 0
+  },
+  "questionErrors": {
+    "Q4": 1,
+    "Q7": 1
+  },
+  "fullSessionData": [
+    {
+      "question": "Q1",
+      "userAnswerText": "Fontes oficiais e checagem",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q2",
+      "userAnswerText": "Para corrigir vulnerabilidades de segurança e proteger contra novas ameaças",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q3",
+      "userAnswerText": "Contúdos manipulados por IA",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q4",
+      "userAnswerText": "imagem real",
+      "correctAnswer": "IA",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q5",
+      "userAnswerText": "espalhar desinformação em massa",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q6",
+      "userAnswerText": "espalhar conteúdo viral",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q7",
+      "userAnswerText": "Ter aparência semelhante ao site original",
+      "correctAnswer": "Ter um endereço (URL) muito parecido, mas com pequenas diferenças",
+      "isCorrect": false,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q8",
+      "userAnswerText": "Domínio estranho",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q9",
+      "userAnswerText": "Usar uma vpn (rede privada virtual) para criptografar sua conexão",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q10",
+      "userAnswerText": "bots e contas falsas",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    }
+  ],
+  "hintsUsedByQuestion": [
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    }
+  ],
+  "notes": "Importado de PDF"
+}

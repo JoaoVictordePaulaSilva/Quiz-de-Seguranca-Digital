@@ -740,6 +740,105 @@ function restartQuiz() {
     document.getElementById('welcome-screen').classList.add('active');
 }
 
+// Export session data as JSON for later import
+function exportSessionDataAsJSON() {
+    if (!quizSessionData.length) return;
+    
+    const sessionData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        quiz: {
+            mode: selectedDifficulty || 'Intermediário',
+            totalQuestions: quizSessionData.length,
+            score,
+            userAnswers,
+            hintsUsedByQuestion,
+            questions: quizSessionData.map((q, idx) => ({
+                id: q.id,
+                question: q.question,
+                level: q.level,
+                userAnswerIndex: userAnswers[idx],
+                userAnswerText: q.options[userAnswers[idx]]?.text || '',
+                isCorrect: q.options[userAnswers[idx]]?.correct || false,
+                correctAnswer: q.options.find(opt => opt.correct)?.text || '',
+                hintsUsed: hintsUsedByQuestion[idx] || { fifty: false, skip: false, university: false }
+            }))
+        }
+    };
+    
+    // Download JSON file
+    const dataStr = JSON.stringify(sessionData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Relatorio_TecnoMack_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+// Import report from JSON file
+function importReportFromJSON(file) {
+    if (!file) return false;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const sessionData = JSON.parse(e.target.result);
+            
+            if (!sessionData.quiz || !Array.isArray(sessionData.quiz.questions)) {
+                alert('Arquivo JSON inválido. Por favor, use um arquivo exportado pelo sistema.');
+                return;
+            }
+            
+            const quiz = sessionData.quiz;
+            const percent = Math.round((quiz.score / (quiz.totalQuestions * 10)) * 100);
+            
+            const id = 'r' + (Date.now().toString(36));
+            const item = {
+                id,
+                participant: `Importado - ${new Date().toLocaleTimeString('pt-BR')}`,
+                title: `Quiz ${quiz.mode} - ${percent}%`,
+                date: new Date(sessionData.exportDate).toLocaleDateString('pt-BR'),
+                mode: quiz.mode,
+                totalQuestions: quiz.totalQuestions,
+                correctAnswers: Math.round(quiz.score / 10),
+                percent,
+                approved: percent >= 70,
+                hints: {
+                    fifty: quiz.hintsUsedByQuestion.filter(h => h?.fifty).length,
+                    skip: quiz.hintsUsedByQuestion.filter(h => h?.skip).length,
+                    university: quiz.hintsUsedByQuestion.filter(h => h?.university).length
+                },
+                questionErrors: {},
+                fullSessionData: quiz.questions,
+                userAnswers: quiz.userAnswers,
+                hintsUsedByQuestion: quiz.hintsUsedByQuestion,
+                notes: `Relatório importado de arquivo JSON.`
+            };
+            
+            // Calculate errors
+            quiz.questions.forEach((q, idx) => {
+                if (!q.isCorrect) {
+                    item.questionErrors[`Q${idx + 1}`] = 1;
+                }
+            });
+            
+            reports.unshift(normalizeReport(item, reports.length));
+            saveReports();
+            renderReportsList();
+            
+            alert(`Relatório importado com sucesso!\nParticipante: ${item.participant}\nPontuação: ${percent}%`);
+            showReport();
+        } catch (err) {
+            console.error('Erro ao importar JSON:', err);
+            alert('Erro ao importar arquivo. Verifique se é um JSON válido.');
+        }
+    };
+    reader.readAsText(file);
+    return true;
+}
+
 // Generate PDF Report
 function gerarPDF() {
     const { jsPDF } = window.jspdf;
@@ -895,12 +994,611 @@ function gerarPDF() {
     const dataAtual = new Date().toLocaleDateString('pt-BR');
     doc.text(`Relatório gerado em: ${dataAtual}`, margin, yPosition);
 
-    // Download
+    // Download PDF
     doc.save('Relatorio_TecnoMack.pdf');
+
+    // Auto-save quiz as report
+    saveCurrentQuizAsReport();
+}
+
+// Show integrated report with analytics based on saved reports
+function showReport() {
+    const reportScreen = document.getElementById('report-screen');
+    const reportSummary = document.getElementById('report-session-summary');
+    const reportContainer = document.getElementById('report-container');
+    if (!reportScreen || !reportSummary || !reportContainer) return;
+
+    const analytics = calculateReportAnalytics(reports);
+
+    let html = '';
+    html += `<div class="report-kpi-grid report-kpi-grid-6">`;
+    html += `<div class="report-card"><div class="kpi-value report-kpi-value">${analytics.totalParticipants}</div><div class="kpi-label">Participantes no total</div></div>`;
+    html += `<div class="report-card"><div class="kpi-value report-kpi-value">${analytics.avgScore}%</div><div class="kpi-label">Média geral de acertos</div></div>`;
+    html += `<div class="report-card"><div class="kpi-value report-kpi-value">${analytics.approvedCount}</div><div class="kpi-label">Aprovados (>= 70%)</div></div>`;
+    html += `<div class="report-card"><div class="kpi-value report-kpi-value">${analytics.approvalRate}%</div><div class="kpi-label">Taxa de aprovação</div></div>`;
+    html += `<div class="report-card"><div class="kpi-value report-kpi-value">${analytics.perfectCount}</div><div class="kpi-label">Notas 100%</div></div>`;
+    html += `<div class="report-card"><div class="kpi-value report-kpi-value">${analytics.lowestScore}%</div><div class="kpi-label">Menor pontuação</div></div>`;
+    html += `</div>`;
+
+    html += `<div class="report-grid-2">`;
+    html += `<div class="report-card">`;
+    html += `<div class="report-section-title">Pontuação por Participante</div>`;
+    html += `<div class="report-bars">`;
+    analytics.participantRows.forEach((row) => {
+        html += `<div class="report-bar-row">`;
+        html += `<span class="report-bar-label">${row.participant}</span>`;
+        html += `<progress class="report-progress ${row.score >= 90 ? 'progress-good' : row.score >= 70 ? 'progress-medium' : 'progress-risk'}" value="${row.score}" max="100"></progress>`;
+        html += `<span class="report-bar-value">${row.score}%</span>`;
+        html += `</div>`;
+    });
+    html += `</div></div>`;
+
+    html += `<div class="report-card">`;
+    html += `<div class="report-section-title">Comparativo por Dificuldade</div>`;
+    html += `<div class="report-mode-grid">`;
+    // Render summary cards
+    Object.entries(analytics.byDifficulty).forEach(([mode, data]) => {
+        html += `<div class="report-mode-card">`;
+        html += `<div class="report-mode-name">${mode}</div>`;
+        html += `<div class="report-mode-score">${data.avg}%</div>`;
+        html += `<div class="report-mode-meta">${data.count} relatório(s)</div>`;
+        html += `</div>`;
+    });
+    html += `</div>`;
+
+    // Add bar charts area to fill space: avg score and approval rate per mode
+    html += `<div class="report-section-title" style="margin-top:0.85rem">Gráficos por Dificuldade</div>`;
+    html += `<div class="mode-charts">`;
+    Object.entries(analytics.byDifficulty).forEach(([mode, data]) => {
+        const avg = data.avg || 0;
+        const appr = data.approvalRate || 0;
+        html += `<div class="mode-chart">`;
+        html += `<div class="mode-chart-header"><div class="mode-chart-label">${mode}</div><div class="mode-chart-count">${data.count} relatório(s)</div></div>`;
+        html += `<div class="mode-chart-row"><div class="mode-chart-title">Média de acertos</div><div class="mode-chart-bar"><div class="mode-chart-bar-fill" style="width:${avg}%"></div></div><div class="mode-chart-value">${avg}%</div></div>`;
+        html += `<div class="mode-chart-row"><div class="mode-chart-title">Taxa de aprovação</div><div class="mode-chart-bar"><div class="mode-chart-bar-fill approval" style="width:${appr}%"></div></div><div class="mode-chart-value">${appr}%</div></div>`;
+        html += `</div>`;
+    });
+    html += `</div>`;
+    html += `</div>`;
+    html += `</div>`;
+
+    html += `<div class="report-grid-2">`;
+    html += `<div class="report-card">`;
+    html += `<div class="report-section-title">Uso de Dicas</div>`;
+    html += `<div class="report-bars">`;
+    const hintsData = [
+        { label: 'Cartas', value: analytics.hints.fifty },
+        { label: 'Universitários', value: analytics.hints.university },
+        { label: 'Pular', value: analytics.hints.skip }
+    ];
+    hintsData.forEach((item) => {
+        html += `<div class="report-bar-row">`;
+        html += `<span class="report-bar-label">${item.label}</span>`;
+        html += `<progress class="report-progress progress-info" value="${item.value}" max="${Math.max(1, analytics.totalParticipants)}"></progress>`;
+        html += `<span class="report-bar-value">${item.value}</span>`;
+        html += `</div>`;
+    });
+    html += `</div></div>`;
+
+    html += `<div class="report-card">`;
+    html += `<div class="report-section-title">Questões com Mais Erros</div>`;
+    if (analytics.topErrors.length) {
+        html += `<div class="report-errors-list">`;
+        analytics.topErrors.forEach((item) => {
+            html += `<div class="report-error-item"><span>${item.question}</span><strong>${item.count}</strong></div>`;
+        });
+        html += `</div>`;
+    } else {
+        html += `<div class="report-empty">Sem erros registrados nos relatórios atuais.</div>`;
+    }
+    html += `</div>`;
+    html += `</div>`;
+
+    reportSummary.innerHTML = html;
+    renderReportsList();
+
+    // Animate chart fills after render
+    setTimeout(() => {
+        document.querySelectorAll('.mode-chart-bar-fill').forEach(el => {
+            const w = el.style.width || '0%';
+            el.style.width = '0%';
+            // trigger reflow
+            void el.offsetWidth;
+            el.style.width = w;
+        });
+    }, 60);
+
+    document.getElementById('welcome-screen').classList.remove('active');
+    document.getElementById('quiz-screen').classList.remove('active');
+    document.getElementById('results-screen').classList.remove('active');
+    reportScreen.classList.add('active');
+    reportContainer.scrollTop = 0;
+}
+
+function hideReport() {
+    const reportScreen = document.getElementById('report-screen');
+    if (!reportScreen) return;
+    reportScreen.classList.remove('active');
+    // show welcome or results depending on last state
+    if (!quizInProgress && quizSessionData && quizSessionData.length) {
+        document.getElementById('results-screen').classList.add('active');
+    } else {
+        document.getElementById('welcome-screen').classList.add('active');
+    }
+}
+
+// --- Reports management (persist in localStorage) ---
+let reports = [];
+const REPORTS_KEY = 'tecnomack_reports_v1';
+
+function saveCurrentQuizAsReport() {
+    if (!quizSessionData.length) return;
+    
+    const id = 'r' + (Date.now().toString(36));
+    const sessionTotal = quizSessionData.length;
+    const sessionCorrect = Math.round(score / 10);
+    const percent = Math.round((sessionCorrect / sessionTotal) * 100);
+    const questionErrors = {};
+    
+    // Calculate which questions were answered incorrectly
+    quizSessionData.forEach((question, index) => {
+        const chosenIndex = userAnswers[index];
+        const selectedOption = question.options[chosenIndex];
+        if (!selectedOption || !selectedOption.correct) {
+            questionErrors[`Q${index + 1}`] = 1;
+        }
+    });
+    
+    // Count hints used per question
+    const hintsCount = {
+        fifty: hintsUsedByQuestion.filter(h => h?.fifty).length,
+        skip: hintsUsedByQuestion.filter(h => h?.skip).length,
+        university: hintsUsedByQuestion.filter(h => h?.university).length
+    };
+    
+    const now = new Date();
+    const item = {
+        id,
+        participant: `Quiz - ${now.toLocaleTimeString('pt-BR')}`,
+        title: `Quiz ${selectedDifficulty} - ${percent}%`,
+        date: now.toLocaleDateString('pt-BR'),
+        mode: selectedDifficulty || 'Intermediário',
+        totalQuestions: sessionTotal,
+        correctAnswers: sessionCorrect,
+        percent,
+        approved: percent >= 70,
+        hints: hintsCount,
+        questionErrors,
+        fullSessionData: quizSessionData.map((q, idx) => ({
+            id: q.id,
+            question: q.question,
+            level: q.level,
+            userAnswerIndex: userAnswers[idx],
+            userAnswerText: q.options[userAnswers[idx]]?.text || '',
+            isCorrect: q.options[userAnswers[idx]]?.correct || false,
+            correctAnswer: q.options.find(opt => opt.correct)?.text || '',
+            hintsUsed: hintsUsedByQuestion[idx] || { fifty: false, skip: false, university: false }
+        })),
+        userAnswers,
+        hintsUsedByQuestion,
+        notes: `Relatório gerado automaticamente ao final do quiz.`
+    };
+    
+    reports.unshift(normalizeReport(item, reports.length));
+    saveReports();
+    
+    // Refresh analytics display if report screen is open
+    if (document.getElementById('report-screen')?.classList.contains('active')) {
+        showReport();
+    }
+}
+
+function makeSampleReports(count = 10) {
+    const now = new Date();
+    return Array.from({ length: count }).map((_, i) => {
+        const correctAnswers = Math.floor(6 + Math.random() * 5);
+        const totalQuestions = 10;
+        
+        return {
+            id: 'r' + (i + 1),
+            participant: `Usuário ${i + 1}`,
+            title: `Quiz ${['Iniciante', 'Intermediário', 'Avançado'][i % 3]} - ${Math.round((correctAnswers / totalQuestions) * 100)}%`,
+            date: new Date(now.getTime() - i * 86400000).toLocaleDateString('pt-BR'),
+            mode: i % 3 === 0 ? 'Avançado' : i % 2 === 0 ? 'Intermediário' : 'Iniciante',
+            totalQuestions: 10,
+            correctAnswers,
+            percent: Math.round((correctAnswers / 10) * 100),
+            approved: correctAnswers >= 7,
+            hints: {
+                fifty: Math.floor(Math.random() * 3),
+                skip: Math.floor(Math.random() * 2),
+                university: Math.floor(Math.random() * 2)
+            },
+            questionErrors: {
+                Q1: Math.floor(Math.random() * 2),
+                Q3: Math.floor(Math.random() * 2),
+                Q5: Math.floor(Math.random() * 2),
+                Q7: Math.floor(Math.random() * 2)
+            },
+            fullSessionData: [],
+            userAnswers: [],
+            hintsUsedByQuestion: Array.from({length: 10}).map(() => ({
+                fifty: Math.random() > 0.7,
+                skip: Math.random() > 0.8,
+                university: Math.random() > 0.8
+            })),
+            notes: `Relatório de amostra - Usuário ${i + 1}.`
+        };
+    });
+}
+
+function normalizeReport(report, index) {
+    const totalQuestions = Number(report.totalQuestions) || 10;
+    const normalizedCorrect = Number(report.correctAnswers);
+    const fallbackPercent = Number(report.percent) || 0;
+    const computedPercent = Number.isFinite(normalizedCorrect)
+        ? Math.round((normalizedCorrect / totalQuestions) * 100)
+        : fallbackPercent;
+
+    return {
+        id: report.id || `r${index + 1}`,
+        participant: report.participant || `P${index + 1}`,
+        title: report.title || `Relatório ${index + 1}`,
+        date: report.date || new Date().toLocaleDateString('pt-BR'),
+        mode: report.mode || 'Intermediário',
+        totalQuestions,
+        correctAnswers: Number.isFinite(normalizedCorrect)
+            ? normalizedCorrect
+            : Math.round((fallbackPercent / 100) * totalQuestions),
+        percent: computedPercent,
+        approved: computedPercent >= 70,
+        hints: {
+            fifty: Number(report?.hints?.fifty) || 0,
+            skip: Number(report?.hints?.skip) || 0,
+            university: Number(report?.hints?.university) || 0
+        },
+        questionErrors: report.questionErrors || {},
+        fullSessionData: report.fullSessionData || [],
+        userAnswers: report.userAnswers || [],
+        hintsUsedByQuestion: report.hintsUsedByQuestion || [],
+        notes: report.notes || ''
+    };
+}
+
+function calculateReportAnalytics(items) {
+    const normalized = items.map(normalizeReport);
+    if (!normalized.length) {
+        return {
+            totalParticipants: 0,
+            avgScore: 0,
+            approvedCount: 0,
+            approvalRate: 0,
+            perfectCount: 0,
+            lowestScore: 0,
+            participantRows: [],
+            byDifficulty: {},
+            hints: { fifty: 0, skip: 0, university: 0 },
+            topErrors: []
+        };
+    }
+
+    const totalParticipants = normalized.length;
+    const totalScore = normalized.reduce((acc, item) => acc + item.percent, 0);
+    const approvedCount = normalized.filter(item => item.approved).length;
+    const perfectCount = normalized.filter(item => item.percent === 100).length;
+    const lowestScore = Math.min(...normalized.map(item => item.percent));
+
+    const byDifficultyMap = {};
+    const hintTotals = { fifty: 0, skip: 0, university: 0 };
+    const errorTotals = {};
+
+    normalized.forEach((item) => {
+        if (!byDifficultyMap[item.mode]) {
+            byDifficultyMap[item.mode] = { count: 0, total: 0, approved: 0 };
+        }
+        byDifficultyMap[item.mode].count += 1;
+        byDifficultyMap[item.mode].total += item.percent;
+        if (item.approved) byDifficultyMap[item.mode].approved += 1;
+
+        hintTotals.fifty += item.hints.fifty;
+        hintTotals.skip += item.hints.skip;
+        hintTotals.university += item.hints.university;
+
+        Object.entries(item.questionErrors).forEach(([question, count]) => {
+            errorTotals[question] = (errorTotals[question] || 0) + Number(count || 0);
+        });
+    });
+
+    const byDifficulty = {};
+    Object.entries(byDifficultyMap).forEach(([mode, value]) => {
+        byDifficulty[mode] = {
+            count: value.count,
+            avg: Math.round(value.total / value.count),
+            approved: value.approved,
+            approvalRate: Math.round((value.approved / value.count) * 100)
+        };
+    });
+
+    const topErrors = Object.entries(errorTotals)
+        .map(([question, count]) => ({ question, count }))
+        .filter(item => item.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+    const participantRows = normalized
+        .map(item => ({ participant: item.participant, score: item.percent }))
+        .sort((a, b) => b.score - a.score);
+
+    return {
+        totalParticipants,
+        avgScore: Math.round(totalScore / totalParticipants),
+        approvedCount,
+        approvalRate: Math.round((approvedCount / totalParticipants) * 100),
+        perfectCount,
+        lowestScore,
+        participantRows,
+        byDifficulty,
+        hints: hintTotals,
+        topErrors
+    };
+}
+
+function loadReports() {
+    try {
+        const raw = localStorage.getItem(REPORTS_KEY);
+        if (raw) {
+            reports = JSON.parse(raw).map(normalizeReport);
+            return;
+        }
+        // If localStorage empty, try to load converted_reports.json from server
+        // This file can be generated by tools/convert_reports.js
+        // If fetch fails, fall back to sample reports
+        try {
+            // Note: fetch is async; use synchronous XHR fallback is avoided — we'll use fetch and wait in setupReportsUI
+        } catch (e) {
+            // ignore
+        }
+        reports = makeSampleReports(10).map(normalizeReport);
+        saveReports();
+    } catch (err) {
+        console.warn('Erro ao carregar reports:', err);
+        reports = makeSampleReports(10).map(normalizeReport);
+    }
+}
+
+// Try to fetch converted reports generated server-side.
+// Preferred: reports/reports_manifest.json with one JSON per PDF.
+// Fallback: reports/converted_reports.json (aggregate file).
+async function fetchConvertedReports() {
+    try {
+        const manifestResp = await fetch('reports/reports_manifest.json', { cache: 'no-store' });
+        if (manifestResp.ok) {
+            const manifest = await manifestResp.json();
+            if (Array.isArray(manifest) && manifest.length > 0) {
+                const fileLoads = manifest.map(async (entry) => {
+                    if (!entry?.jsonFile) return null;
+                    const res = await fetch(`reports/${entry.jsonFile}`, { cache: 'no-store' });
+                    if (!res.ok) return null;
+                    return await res.json();
+                });
+                const loaded = await Promise.all(fileLoads);
+                const items = loaded
+                    .filter(Boolean)
+                    .map((item) => Array.isArray(item) ? item[0] : item)
+                    .filter(Boolean);
+                if (items.length > 0) {
+                    reports = items.map(normalizeReport);
+                    saveReports();
+                    return true;
+                }
+            }
+        }
+
+        // Backward-compatible fallback
+        const resp = await fetch('reports/converted_reports.json', { cache: 'no-store' });
+        if (!resp.ok) return false;
+        const data = await resp.json();
+        if (Array.isArray(data) && data.length > 0) {
+            reports = data.map(normalizeReport);
+            saveReports();
+            return true;
+        }
+    } catch (err) {
+        // console.warn('No converted reports file found', err);
+    }
+    return false;
+}
+
+function saveReports() {
+    localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+}
+
+function renderReportsList() {
+    const list = document.getElementById('reports-list');
+    if (!list) return;
+    list.innerHTML = '';
+    reports.forEach((r) => {
+        const card = document.createElement('div');
+        card.className = 'report-card';
+        card.innerHTML = `
+            <div class="report-item-head">
+                <div class="report-item-title">${r.title}</div>
+                <div class="report-item-date">${r.date}</div>
+            </div>
+            <div class="report-item-score">${r.participant} - ${r.mode} - <strong>${r.percent}%</strong></div>
+            <div class="report-item-actions">
+                <button class="btn btn-primary report-btn-grow" onclick="viewReport('${r.id}')">Ver</button>
+                <button class="btn btn-secondary" onclick="removeReport('${r.id}')">Excluir</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+function addReport(data) {
+    const id = 'r' + (Date.now().toString(36));
+    const sessionTotal = quizSessionData.length || 10;
+    const sessionCorrect = quizSessionData.length ? Math.round(score / 10) : Math.floor(6 + Math.random() * 5);
+    const percent = Math.round((sessionCorrect / sessionTotal) * 100);
+    const questionErrors = {};
+    const fullSessionData = [];
+
+    if (quizSessionData.length) {
+        quizSessionData.forEach((question, index) => {
+            const chosenIndex = userAnswers[index];
+            const selectedOption = question.options[chosenIndex];
+            const isCorrect = selectedOption && selectedOption.correct;
+            
+            if (!isCorrect) {
+                questionErrors[`Q${index + 1}`] = 1;
+            }
+            
+            fullSessionData.push({
+                id: question.id,
+                question: question.question,
+                level: question.level,
+                userAnswerIndex: chosenIndex,
+                userAnswerText: selectedOption?.text || '',
+                isCorrect,
+                correctAnswer: question.options.find(opt => opt.correct)?.text || '',
+                hintsUsed: hintsUsedByQuestion[index] || { fifty: false, skip: false, university: false }
+            });
+        });
+    }
+
+    const item = {
+        id,
+        participant: data.participant || `P${reports.length + 1}`,
+        title: data.title || `Relatório ${reports.length + 1}`,
+        date: data.date || new Date().toLocaleDateString('pt-BR'),
+        mode: data.mode || selectedDifficulty || 'Intermediário',
+        totalQuestions: sessionTotal,
+        correctAnswers: sessionCorrect,
+        percent,
+        approved: percent >= 70,
+        hints: {
+            fifty: hintsUsedByQuestion.filter(h => h?.fifty).length,
+            skip: hintsUsedByQuestion.filter(h => h?.skip).length,
+            university: hintsUsedByQuestion.filter(h => h?.university).length
+        },
+        questionErrors,
+        fullSessionData,
+        userAnswers: quizSessionData.length ? [...userAnswers] : [],
+        hintsUsedByQuestion: quizSessionData.length ? [...hintsUsedByQuestion] : [],
+        notes: data.notes || ''
+    };
+    reports.unshift(normalizeReport(item, reports.length));
+    saveReports();
+    renderReportsList();
+}
+
+function removeReport(id) {
+    reports = reports.filter(r => r.id !== id);
+    saveReports();
+    renderReportsList();
+    const detail = document.getElementById('report-detail');
+    if (detail && detail.dataset.currentId === id) {
+        detail.classList.remove('visible');
+        detail.dataset.currentId = '';
+    }
+    if (document.getElementById('report-screen')?.classList.contains('active')) {
+        showReport();
+    }
+}
+
+function viewReport(id) {
+    const r = reports.find(x => x.id === id);
+    const detail = document.getElementById('report-detail');
+    if (!r || !detail) return;
+    detail.dataset.currentId = id;
+    detail.classList.add('visible');
+    
+    let html = `
+        <div class="report-item-head">
+            <strong class="report-item-title">${r.title}</strong>
+            <div class="report-item-date">${r.date}</div>
+        </div>
+        <div class="report-item-score">Participante: <strong>${r.participant}</strong></div>
+        <div class="report-item-score">Dificuldade: <strong>${r.mode}</strong></div>
+        <div class="report-item-score">Pontuação: <strong>${r.percent}%</strong> (${r.correctAnswers}/${r.totalQuestions})</div>
+        <div class="report-item-score">Dicas usadas: Cartas ${r.hints.fifty}, Universitários ${r.hints.university}, Pular ${r.hints.skip}</div>
+        <div class="report-detail-notes">${r.notes}</div>
+    `;
+    
+    // Show detailed answers if available
+    if (r.fullSessionData && r.fullSessionData.length > 0) {
+        html += `<div class="report-section-title" style="margin-top: 20px;">Detalhes das Questões</div>`;
+        r.fullSessionData.forEach((qData, idx) => {
+            const statusClass = qData.isCorrect ? 'status-correct' : 'status-incorrect';
+            const statusText = qData.isCorrect ? 'ACERTOU' : 'ERROU';
+            
+            html += `
+                <div class="report-question-card">
+                    <div class="report-question-head">
+                        <span>Q${idx + 1}</span>
+                        <span class="report-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div style="margin: 8px 0; font-weight: bold; color: var(--primary-dark);">${qData.question}</div>
+                    <div style="margin: 5px 0; font-size: 0.9em;">
+                        <strong>Sua resposta:</strong> ${qData.userAnswerText || 'Não respondida'}
+                    </div>
+                    ${!qData.isCorrect ? `<div style="margin: 5px 0; font-size: 0.9em; color: var(--success-color);"><strong>Resposta correta:</strong> ${qData.correctAnswer}</div>` : ''}
+                </div>
+            `;
+        });
+    }
+    
+    detail.innerHTML = html;
+}
+
+function clearAllReports() {
+    if (!confirm('Remover todos os relatórios? Esta ação não pode ser desfeita.')) return;
+    reports = [];
+    saveReports();
+    renderReportsList();
+    const detail = document.getElementById('report-detail');
+    if (detail) { detail.classList.remove('visible'); detail.dataset.currentId = ''; }
+    if (document.getElementById('report-screen')?.classList.contains('active')) {
+        showReport();
+    }
+}
+
+async function setupReportsUI() {
+    // Try to load from localStorage or server-provided converted JSON
+    await fetchConvertedReports();
+    if (!reports || !reports.length) loadReports();
+    renderReportsList();
+    const btnClear = document.getElementById('btn-clear-reports');
+    const fileInput = document.getElementById('report-file-input');
+    const btnImport = document.getElementById('btn-import-json');
+    
+    if (btnImport && fileInput) {
+        btnImport.addEventListener('click', () => fileInput.click());
+    }
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                importReportFromJSON(file);
+            }
+            e.target.value = ''; // Reset input
+        });
+    }
+    
+    if (btnClear) {
+        btnClear.addEventListener('click', clearAllReports);
+    }
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize reports UI
+    try {
+        await setupReportsUI();
+    } catch (e) {
+        console.warn('setupReportsUI failed:', e);
+    }
     await loadActiveQuestionBank();
     updateQuestionCounters();
     updateDataSourceBanner();

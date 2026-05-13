@@ -1,0 +1,42 @@
+[
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Beatriz 1).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Beatriz_1.json",
+    "title": "Relatorio_TecnoMack (Beatriz 1)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Leonardo 1).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Leonardo_1.json",
+    "title": "Relatorio_TecnoMack (Leonardo 1)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Leonardo 3).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Leonardo_3.json",
+    "title": "Relatorio_TecnoMack (Leonardo 3)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Reginaldo 1).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Reginaldo_1.json",
+    "title": "Relatorio_TecnoMack (Reginaldo 1)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Reginaldo 2).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Reginaldo_2.json",
+    "title": "Relatorio_TecnoMack (Reginaldo 2)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Reginaldo 3).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Reginaldo_3.json",
+    "title": "Relatorio_TecnoMack (Reginaldo 3)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack (Reginaldo 4).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMack_Reginaldo_4.json",
+    "title": "Relatorio_TecnoMack (Reginaldo 4)"
+  },
+  {
+    "sourcePdf": "Relatorio_TecnoMack(Leonardo 2).pdf",
+    "jsonFile": "individual/Relatorio_TecnoMackLeonardo_2.json",
+    "title": "Relatorio_TecnoMack(Leonardo 2)"
+  }
+]

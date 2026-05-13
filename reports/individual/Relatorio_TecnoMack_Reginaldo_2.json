@@ -1,0 +1,182 @@
+{
+  "id": "r1778684706733Re",
+  "participant": "Relatorio_TecnoMack (Reginaldo 2)",
+  "title": "Relatorio_TecnoMack (Reginaldo 2)",
+  "date": "10/05/2026",
+  "mode": "Iniciante",
+  "totalQuestions": 10,
+  "correctAnswers": 10,
+  "percent": 100,
+  "approved": true,
+  "hints": {
+    "fifty": 0,
+    "skip": 0,
+    "university": 0
+  },
+  "questionErrors": {},
+  "fullSessionData": [
+    {
+      "question": "Q1",
+      "userAnswerText": "possível golpe",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q2",
+      "userAnswerText": "Informações genéricas, fotos de paisagens ou comentários sobre temas gerais.",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q3",
+      "userAnswerText": "desinformação e prejuízos",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q4",
+      "userAnswerText": "deve ser verificada",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q5",
+      "userAnswerText": "Copiar o link e verificar com cuidado antes de acessar",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q6",
+      "userAnswerText": "Não clicar no link e buscar o site oficial do órgão para verificar a informação",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q7",
+      "userAnswerText": "Verificar em sites confiáveis",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q8",
+      "userAnswerText": "Uma informação falsa divulgada como se fosse verdadeira",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q9",
+      "userAnswerText": "Verificar a fonte, consultar fatos e não compartilhar se estiver incerto",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    },
+    {
+      "question": "Q10",
+      "userAnswerText": "Proteger o computador contra ameaças digitais",
+      "correctAnswer": "",
+      "isCorrect": true,
+      "hintsUsed": {
+        "fifty": false,
+        "skip": false,
+        "university": false
+      }
+    }
+  ],
+  "hintsUsedByQuestion": [
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    },
+    {
+      "fifty": false,
+      "skip": false,
+      "university": false
+    }
+  ],
+  "notes": "Importado de PDF"
+}

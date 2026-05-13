@@ -12,8 +12,10 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>TecnoMack</h1>
-            <p class="subtitle">Sua defesa contra os perigos da internet</p>
+            <div class="header-inner">
+                <h1>TecnoMack</h1>
+                <p class="subtitle">Sua defesa contra os perigos da internet</p>
+            </div>
         </header>
 
         <!-- Main Quiz Section -->
@@ -36,11 +38,14 @@
                     </div>
 
                     <button class="btn btn-primary" onclick="showDifficultySelection()">Começar Quiz</button>
+                    <div class="welcome-report-action">
+                        <button class="btn btn-primary btn-full" onclick="showReport()">Ver Relatório</button>
+                    </div>
                 </div>
             </section>
 
             <!-- Difficulty Selection Screen -->
-            <section id="difficulty-screen" class="screen screen-welcome active" style="display: none;">
+            <section id="difficulty-screen" class="screen screen-welcome active">
                 <div class="welcome-box">
                     <h2>Escolha o Nível de Dificuldade</h2>
                     <p>Selecione o nível que deseja para o seu quiz:</p>
@@ -93,7 +98,7 @@
 
                     <div class="quiz-actions">
                         <button class="btn btn-secondary" onclick="previousQuestion()" id="btn-previous">Anterior</button>
-                        <button class="btn btn-primary" onclick="nextQuestion()" id="btn-next" style="display: none;">Próxima</button>
+                        <button class="btn btn-primary" onclick="nextQuestion()" id="btn-next">Próxima</button>
                     </div>
                 </div>
             </section>
@@ -127,6 +132,8 @@
                     <div class="results-actions">
                         <button class="btn btn-primary" onclick="restartQuiz()">Fazer Quiz Novamente</button>
                         <button class="btn btn-secondary" onclick="gerarPDF()">Baixar Relatório em PDF</button>
+                        <button class="btn btn-secondary" onclick="exportSessionDataAsJSON()">Gerar JSON</button>
+                        <button class="btn btn-primary" onclick="showReport()">Ver Relatório</button>
                     </div>
 
                     <div class="results-tips">
@@ -142,6 +149,35 @@
                 </div>
             </section>
         </main>
+
+        <!-- Report screen (integrated) -->
+        <section id="report-screen" class="screen">
+            <div class="report-panel" id="report-container">
+                <div class="report-header-row">
+                    <h2 class="report-title">Relatório de Desempenho</h2>
+                    <button class="btn btn-secondary" onclick="hideReport()">Voltar ao Quiz</button>
+                </div>
+                <div id="report-content">
+                    <div id="report-session-summary" class="report-session-summary"></div>
+
+                    <div class="report-toolbar">
+                        <div class="report-toolbar-meta">
+                            <strong class="report-toolbar-title">Relatórios</strong>
+                            <div class="report-toolbar-subtitle">Lista inicial com os 10 relatórios - adicione ou remova itens.</div>
+                        </div>
+                        <div class="report-toolbar-actions">
+                            <input type="file" id="report-file-input" accept=".json" style="display: none;">
+                            <button id="btn-import-json" class="btn btn-secondary">Importar Relatório (JSON)</button>
+                            <button id="btn-clear-reports" class="btn btn-secondary">Limpar Todos</button>
+                        </div>
+                    </div>
+
+                    <div id="reports-list" class="reports-grid"></div>
+
+                    <div id="report-detail" class="report-detail"></div>
+                </div>
+            </div>
+        </section>
 
         <!-- Footer -->
         <footer class="footer">

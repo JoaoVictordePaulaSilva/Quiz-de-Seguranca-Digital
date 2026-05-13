@@ -1,0 +1,35 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Source PDFs (already converted to JSON)
+Relatorios/
+
+# Node (if added in future)
+node_modules/
+package-lock.json
+npm-debug.log
+
+# Local development
+*.log
